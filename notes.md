@@ -482,6 +482,8 @@ struct TreeNode{
     }
 };
 
+TreeNode* root=nullptr;  //define the initial root
+
 void update_size(TreeNode* node){
     if(node!=nullptr){
         node->size=node->cnt;
@@ -687,4 +689,230 @@ void Postorder(TreeNode* root,vector<int>& arr){
 3. Postorder: delete tree, calculate directory storage(Bottom-Up), Tree DP 
 
 ## AVL Tree(self-balancing tree)
+**feature**: for every node v, $bal(v)<=1$ , $bal(v)=h(T_l)-h(T_r)$
+```cpp
+int get_height(TreeNode* node){
+    if(node==nullptr){
+        return 0;
+    }else{
+        return node->height;
+    }
+}
 
+int get_size(TreeNode* node){
+    if(node==nullptr){
+        return 0;
+    }else{
+        return node->size;;
+    }
+}
+
+void update(TreeNode* node){  //update the size and height
+    if(node==nullptr){
+        return;
+    }else{
+        node->height=max(get_height(node->left),get_height(node->right))+1;
+        node->size=node->cnt+get_size(node->left)+get_size(node->right);
+    }
+}
+
+int get_bal(TreeNode* node){
+    if(node==nullptr){
+        return 0;
+    }
+    return get_height(node->left)-get_height(node->right);
+}
+
+bool IsNotBalanced(TreeNode* node){
+    return abs(get_bal(node)) > 1;
+}
+
+void Rotate(TreeNode*& root,TreeNode* node1){
+    if(get_bal(node1)==2){
+        if(get_bal(node1->left)>=0){  //LL
+            TreeNode* node2=node1->left;
+            if(node1==root){
+                root=node2;
+                node2->parent=nullptr;
+            }else if(node1==node1->parent->left){
+                node2->parent=node1->parent;
+                node1->parent->left=node2;
+            }else if(node1==node1->parent->right){
+                node2->parent=node1->parent;
+                node1->parent->right=node2;
+            }
+            node1->parent=node2;
+            node1->left=node2->right;
+            if(node2->right!=nullptr){
+                node2->right->parent=node1;
+            }
+            node2->right=node1;
+            update(node1);
+            update(node2);
+            }else{  //LR
+            TreeNode* node2=node1->left;
+            TreeNode* node3=node2->right;
+            if(node1==root){
+                root=node3;
+                node3->parent=nullptr;
+            }else if(node1==node1->parent->left){
+                node3->parent=node1->parent;
+                node1->parent->left=node3;
+            }else if(node1==node1->parent->right){
+                node3->parent=node1->parent;
+                node1->parent->right=node3;
+            }
+            node2->right=node3->left;
+            if(node3->left!=nullptr){
+                node3->left->parent=node2;
+            }
+            node1->left=node3->right;
+            if(node3->right!=nullptr){
+                node3->right->parent=node1;
+            }
+            node2->parent=node3;
+            node3->left=node2;
+            node1->parent=node3;
+            node3->right=node1;
+            update(node1);
+            update(node2);
+            update(node3);
+        }
+    }else if(get_bal(node1)==-2){
+        if(get_bal(node1->right)<=0){  //RR
+            TreeNode* node2=node1->right;
+            if(node1==root){
+                root=node2;
+                node2->parent=nullptr;
+            }else if(node1==node1->parent->left){
+                node2->parent=node1->parent;
+                node1->parent->left=node2;
+            }else if(node1==node1->parent->right){
+                node2->parent=node1->parent;
+                node1->parent->right=node2;
+            }
+            node1->parent=node2;
+            node1->right=node2->left;
+
+            if(node2->left!=nullptr){
+                node2->left->parent=node1;
+            }
+            node2->left=node1;
+            update(node1);
+            update(node2);
+        }else{  //RL
+            TreeNode* node2=node1->right;
+            TreeNode* node3=node2->left;
+            if(node1==root){
+                root=node3;
+                node3->parent=nullptr;
+            }else if(node1==node1->parent->left){
+                node3->parent=node1->parent;
+                node1->parent->left=node3;
+            }else if(node1==node1->parent->right){
+                node3->parent=node1->parent;
+                node1->parent->right=node3;
+            }
+            node2->left=node3->right;
+            if(node3->right!=nullptr){
+                node3->right->parent=node2;
+            }
+            node1->right=node3->left;
+            if(node3->left!=nullptr){
+                node3->left->parent=node1;
+            }
+            node2->parent=node3;
+            node3->right=node2;
+            node1->parent=node3;
+            node3->left=node1;
+            update(node1);
+            update(node2);
+            update(node3);
+        }
+    }
+}
+
+void Insert(TreeNode*& node,TreeNode* p,int x){
+    if(node==nullptr){
+        node=new TreeNode(x);
+        node->parent=p;
+        return;
+    }
+    if(x<node->val){
+        Insert(node->left,node,x);
+    }else if(x==node->val){
+        node->cnt++;
+    }else{
+        Insert(node->right,node,x);
+    }
+    update(node);
+    if(IsNotBalanced(node)){
+        Rotate(root,node);
+    }
+};
+
+void Delete(TreeNode*& root,int x){
+    TreeNode* node1=Search(root,x);
+    if(node1->cnt>1){
+        node1->cnt--;
+        while(node1!=nullptr){
+            update(node1);
+            node1=node1->parent;
+        }
+    }else{
+        if(node1->left==nullptr){
+            TreeNode* node2=node1->right;
+            Transplant(root,node1,node2);
+            if(node2==nullptr){
+                node2=node1->parent;
+            }
+            while(node2!=nullptr){
+            update(node2);
+            TreeNode* temp=node2;
+            node2=node2->parent;
+            if(IsNotBalanced(temp)){
+            Rotate(root,temp);
+            }
+            }
+            delete node1;
+        }else if(node1->right==nullptr){
+            TreeNode* node2=node1->left;
+            Transplant(root,node1,node2);
+            if(node2==nullptr){
+                node2=node2->parent;
+            }
+            while(node2!=nullptr){
+            update(node2);
+            TreeNode* temp=node2;
+            node2=node2->parent;
+            if(IsNotBalanced(temp)){
+            Rotate(root,temp);
+            }
+            }
+            delete node1;
+        }else{
+            TreeNode* node2 = Successor(root,x);
+            TreeNode* node3= node2;
+            if(node2!=node1->right){
+                node3= node2->parent;
+                Transplant(root,node2,node2->right);
+                node2->right=node1->right;
+                node2->right->parent=node2;
+            }
+            Transplant(root,node1,node2);
+            node2->left=node1->left;
+            node2->left->parent=node2;
+            delete node1;
+            
+            while(node3!=nullptr){
+            update(node3);
+            TreeNode* temp=node3;
+            node3=node3->parent;
+            if(IsNotBalanced(temp)){
+            Rotate(root,temp);
+            }
+            }
+        }
+    }
+}
+```
