@@ -2,9 +2,9 @@
 #include <vector>
 #include <climits>
 using namespace std;
-void Merge(int* arr,int p,int q,int r){
-    int left[q-p+2];
-    int right[r-q+1];
+void Merge(vector<int>& arr,int p,int q,int r){
+    vector<int> left(q-p+2);
+    vector<int> right(r-q+1);
     for(int i=0;i<q-p+1;i++){
        left[i]=arr[i+p];
     }
@@ -24,7 +24,7 @@ void Merge(int* arr,int p,int q,int r){
         j++;
     }
 }
-void MergeSort(int* arr,int p,int r){
+void MergeSort(vector<int>& arr,int p,int r){
     if(p>=r) return;
     int q=(p+r)/2;
     MergeSort(arr,p,q);
@@ -34,7 +34,7 @@ void MergeSort(int* arr,int p,int r){
 int main(){
     int n;
     cin>>n;
-    int* arr=new int[n];
+    vector<int> arr(n);
     for(int i=0;i<n;i++){
         cin>>arr[i];   
     }
@@ -42,5 +42,5 @@ int main(){
     for(int i=0;i<n;i++){
         cout<<arr[i]<<" ";
     }
-    delete[] arr;
+
 }

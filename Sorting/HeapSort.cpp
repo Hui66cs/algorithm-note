@@ -1,8 +1,9 @@
 #include <iostream>
 #include <vector>
 using namespace std;
-static int heapsize;
-void MaxHeapify(vector<int>& arr,int x){
+//1-base堆排序
+//将该元素及其下面的部分(子树)转换成最大堆，注意：需要满足子树本身是最大堆的前提条件
+void MaxHeapify(vector<int>& arr,int x,int heapsize){
     int l=2*x;
     int r=2*x+1;
     int largest;
@@ -16,20 +17,22 @@ void MaxHeapify(vector<int>& arr,int x){
     }
     if(x!=largest){
         swap(arr[x],arr[largest]);
-        MaxHeapify(arr,largest);
+        MaxHeapify(arr,largest,heapsize);
     }
 }
-void BuildMaxHeap(vector<int>& arr) {
+
+//建立最大堆
+void BuildMaxHeap(vector<int>& arr,int heapsize) {
     for(int i=heapsize/2;i>=1;i--){
-        MaxHeapify(arr,i);
+        MaxHeapify(arr,i,heapsize);
     }
 }
-void HeapSort(vector<int>& arr){
-    BuildMaxHeap(arr);
+void HeapSort(vector<int>& arr,int heapsize){
+    BuildMaxHeap(arr,heapsize);
     while(heapsize>1){
         swap(arr[1],arr[heapsize]);
         heapsize--;
-        MaxHeapify(arr,1);
+        MaxHeapify(arr,1,heapsize);
     }
 }
 int main(){
@@ -39,8 +42,7 @@ int main(){
     for(int i = 1; i < n+1; i++) {
         cin >> arr[i];
     }
-    heapsize = n;
-    HeapSort(arr);
+    HeapSort(arr,n);
     for(int i = 1; i < n+1; i++) {
         cout << arr[i] << " ";
     }

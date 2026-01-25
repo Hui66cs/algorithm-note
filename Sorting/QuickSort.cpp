@@ -1,6 +1,13 @@
 #include <iostream>
 #include <vector>
+#include <random>
 using namespace std;
+int randomInt(int a,int b){
+    static random_device rd;
+    static mt19937 gen(rd());
+    uniform_int_distribution<int> dis(a, b);
+    return dis(gen);
+}
 int Partition(vector<int>& arr,int p,int r){
     int pivot=arr[r];
     int i=p-1;
@@ -13,9 +20,14 @@ int Partition(vector<int>& arr,int p,int r){
     swap(arr[i+1],arr[r]);
     return i+1;
 }
+int Randomised_Partition(vector<int>& arr,int p,int r){
+    int i=randomInt(p,r);
+    swap(arr[i],arr[r]);
+    return Partition(arr,p,r);
+}
 void QuickSort(vector<int>& arr,int p,int r){
     if(p>=r) return;
-    int q=Partition(arr,p,r);
+    int q=Randomised_Partition(arr,p,r);
     QuickSort(arr,p,q-1);
     QuickSort(arr,q+1,r);
 }

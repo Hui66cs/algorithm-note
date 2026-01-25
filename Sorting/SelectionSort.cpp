@@ -1,12 +1,7 @@
 #include <iostream>
+#include <vector>
 using namespace std;
-int main(){
-    int n;
-    cin>>n;
-    int *arr=new int[n];
-    for(int i=0;i<n;i++){
-        cin>>arr[i];
-    }
+void SelectionSort(vector<int>& arr,int n){
     for(int i=0;i<n-1;i++){
         int key=i;
         for(int j=i+1;j<n;j++){
@@ -16,8 +11,16 @@ int main(){
         }
         swap(arr[i],arr[key]);
     }
+}
+int main(){
+    int n;
+    cin>>n;
+    vector <int> arr(n);
+    for(int i=0;i<n;i++){
+        cin>>arr[i];
+    }
+    SelectionSort(arr,n);
     for(int i=0;i<n;i++){
         cout<<arr[i]<<" ";
     }
-    delete[] arr;
 }

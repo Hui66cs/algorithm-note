@@ -1,13 +1,7 @@
 #include <iostream>
-#include <memory>
+#include <vector>
 using namespace std;
-int main(){
-    int n;
-    cin>>n;
-    auto arr=make_unique<int[]>(n);
-    for(int i=0;i<n;i++){
-        cin>>arr[i];
-    }
+void InsertionSort(vector<int>& arr,int n){
     for(int i=1;i<n;i++){
         int key=arr[i];
         int j=i-1;
@@ -17,6 +11,15 @@ int main(){
         }
         arr[j+1]=key;
     }
+}
+int main(){
+    int n;
+    cin>>n;
+    vector<int> arr(n);
+    for(int i=0;i<n;i++){
+        cin>>arr[i];
+    }
+    InsertionSort(arr,n);
     for(int i=0;i<n;i++){
         cout<<arr[i]<<" ";
     }
