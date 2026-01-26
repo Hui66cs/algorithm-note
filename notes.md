@@ -1,4 +1,6 @@
 [TOC]
+
+---
 # Sorting
 ## CPP's Sorting is QuickSort
 ```cpp
@@ -308,6 +310,8 @@ void RadixSort(vector<int>& arr){
 ```
 **Time Complexity**:$\Theta(d(n+k))=\Theta((n+k)\log_{k}M)$, M is the largest number in the array.
 By base k, the largest number M has $log_{k}M$ digits. Since each digits $\in[0,k]$, so for each digit, the CountingSort takes $\Theta(n+k)$ times
+
+---
 
 # Elementary Data Structure
 
@@ -916,3 +920,58 @@ void Delete(TreeNode*& root,int x){
     }
 }
 ```
+
+---
+
+# Graph Algorithms
+## Expressions of graphs
+### for directed graph
+1. by adjacent list
+**every node has an array, for every edge (u,v), you should add v to the array for u**
+**Space Complexity**: $O(V+E)$, suitable for sparse graph($E=O(V)$)
+```cpp
+int V;
+int E;
+cin>>V>>E;
+vector<vector<int>> adj(V+1);
+for(int i=0;i<E;i++){
+    int u;
+    int v;
+    cin>>u>>v;
+    adj[u].push_back(v);
+    //if it's undirected graph, also need
+    ///adj[v].push_back(u)
+}
+``` 
+
+2. by adjacent matrix
+**prepare a matrix which size is $V \times V$, if there is a edge(u,v), the matrix(u,v)=1, else =0**
+**Space Complexity**:$O(V^2)$, suitable for dense graph($E=\Theta(V^2)$)
+
+```cpp
+bool Exist_Edge(const vector<bool>& adj,int V, int u,int v){
+    if(adj[(u-1)*V+v-1]==true){
+        return true;
+    }else{
+        return false;
+    }
+}
+int main(){
+    int V;
+    int E;
+    cin>>V>>E;
+    vector<bool> adj((V)*(V));
+    for(int i=0;i<E;i++){
+        int u;
+        int v;
+        cin>>u>>v;
+        adj[(u-1)*V+v-1]=1;
+        //if it's undirected graph, also need
+        //adj[(v-1)*V+u-1]=1;
+    }
+}
+```
+### for undirected graph
+
+1. adjacent list need to add both side of the edge, so space complexity becomes $O(V+2E)$
+2. adjacent matrix becomes symmetric, the space complexity is still $O(V^2)$
