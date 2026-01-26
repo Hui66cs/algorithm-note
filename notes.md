@@ -413,7 +413,7 @@ public:
 #include <queue>
 queue<T> q;  //input the data type T for the queue
 push(val);  //enqueue the element to the rear
-pop();  //dequeue the element at the front
+pop();  //dequeue the element at the front, void
 front();  //return the reference at the front
 back();  //return the reference at the rear
 empty();  //bool
@@ -924,11 +924,15 @@ void Delete(TreeNode*& root,int x){
 ---
 
 # Graph Algorithms
+
 ## Expressions of graphs
+
 ### for directed graph
+
 1. by adjacent list
 **every node has an array, for every edge (u,v), you should add v to the array for u**
 **Space Complexity**: $O(V+E)$, suitable for sparse graph($E=O(V)$)
+
 ```cpp
 int V;
 int E;
@@ -960,7 +964,7 @@ int main(){
     int V;
     int E;
     cin>>V>>E;
-    vector<bool> adj((V)*(V));
+    vector<bool> adj((V)*(V));  //use bool can save memory. use one-dimension to simulate two-dimension
     for(int i=0;i<E;i++){
         int u;
         int v;
@@ -971,7 +975,125 @@ int main(){
     }
 }
 ```
+
 ### for undirected graph
 
 1. adjacent list need to add both side of the edge, so space complexity becomes $O(V+2E)$
 2. adjacent matrix becomes symmetric, the space complexity is still $O(V^2)$
+
+## Breadth First Search(BFS)
+
+**idea:use a queue, initially enqueue the source, then every time when the queue is not empty, dequeue u and let every non-discoverd adjacent node of u as v, let dist[v]=dist[u]+1 and let parent if v be u, enqueue v. Thus achieving the goal of searching layer by layer **
+
+```cpp
+// 1-base
+void BFS(vector<int>& dist,vector<int>& parent,const vector<vector<int>>& adj,int s){
+    dist[s]=0;
+    queue<int> Q;
+    Q.push(s);
+    while(!Q.empty()){
+        int u=Q.front();
+        Q.pop();
+        int n=adj[u].size();
+        for(int i=0;i<n;i++){
+            int v=adj[u][i];
+            if(dist[v]==-1){
+                Q.push(v);
+                dist[v]=dist[u]+1;
+                parent[v]=u;
+            }
+        }
+    }
+}
+
+void Show_Shortest_Path(const vector<int>& parent,int path_node){  //to print the shortest path from source to path_node
+    if(parent[path_node]==-1){
+        cout<<path_node<<" ";
+        return;
+    }
+    Show_Shortest_Path(parent,parent[path_node]);  
+    cout<<path_node<<" ";  //recursion then print, it can print the path in positive order
+}
+
+//in main function, you should initialize the dist and parent array:
+// vector<int> dist(V+1,-1);  the distance from the source to this node
+// vector<int> parent(V+1,-1);  the predecessor of this node
+// BFS(dist,parent,adj,<source>);
+```
+
+**Time Complexity: $O(V+E)$**
+
+### Usage
+- Shortest Path in Unweighted Graph
+- Connectivity
+- Level Order Traversal
+
+## Depth First Search(DFS)
+
+**idea: when a node is first dicovered, record its dicovered time, then do the same to all its adjacent node(like a stack, deeper to deeper), after all adjacent nodes has been discovered and no more adjacent node, it's said that the node is finished, record the finish time**
+
+```cpp
+int DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int time,int u){
+    d[u]=++time;
+    for(int v:adj[u]){
+        if(d[v]==-1){
+            parent[v]=u;
+            time=DFS_Visit(adj,d,f,parent,time,v);
+        }
+    }
+    f[u]=++time;
+    return time;
+}
+
+void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent){
+    int time=0;  //timestamp
+    int n=d.size();
+    for(int i=1;i<n;i++){
+        if(d[i]==-1){
+            time=DFS_Visit(adj,d,f,parent,time,i);
+        }
+    }
+}
+//in main function, you should initialize the d,f and parent array:
+// vector<int> d(V+1,-1);  the time when this node is first dicovered
+// vector<int> f(V+1,-1);  the time when all the adjacent nodes of this node has been dealt and finished
+// vector<int> parent(V+1,-1);
+// DFS(adj,d,f,parent);
+```
+
+**Time Complexity: $O(V+E)$**
+
+### Topological Sort
+**only suitable for directed acyclic(no circuit) graph**
+```cpp
+void TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
+    d[u]=++time;
+    for(int v:adj[u]){
+        if(d[v]==-1){
+            parent[v]=u;
+            TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index);
+        }
+    }
+    f[u]=++time;
+    sort[index]=u;
+    index--;
+}
+
+void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
+    int time=0;
+    int n=d.size();
+    int index=n-2;
+    for(int i=1;i<n;i++){
+        if(d[i]==-1){
+            TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index);
+        }
+    }
+}
+
+// vector<int> d(V+1,-1);
+// vector<int> f(V+1,-1);
+// vector<int> parent(V+1,-1);
+// vector<int> sort(V);
+// DFS(adj,d,f,parent,sort);
+// the result is stored in sort
+```

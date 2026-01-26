@@ -1,24 +1,45 @@
 #include <iostream>
 #include <vector>
 using namespace std;
-bool Exist_Edge(const vector<bool>& adj,int V, int u,int v){
-    if(adj[(u-1)*V+v-1]==true){
-        return true;
-    }else{
-        return false;
+
+void TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
+    d[u]=++time;
+    for(int v:adj[u]){
+        if(d[v]==-1){
+            parent[v]=u;
+            TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index);
+        }
+    }
+    f[u]=++time;
+    sort[index]=u;
+    index--;
+}
+
+void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
+    int time=0;
+    int n=d.size();
+    int index=n-2;
+    for(int i=1;i<n;i++){
+        if(d[i]==-1){
+            TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index);
+        }
     }
 }
+
 int main(){
     int V;
     int E;
     cin>>V>>E;
-    vector<bool> adj((V)*(V));
+    vector<vector<int>> adj(V+1);
     for(int i=0;i<E;i++){
         int u;
         int v;
         cin>>u>>v;
-        adj[(u-1)*V+v-1]=1;
-        //if it's undirected graph, also need
-        //adj[(v-1)*V+u-1]=1;
+        adj[u].push_back(v);
     }
+    vector<int> d(V+1,-1);
+    vector<int> f(V+1,-1);
+    vector<int> parent(V+1,-1);
+    vector<int> sort(V);
+    DFS(adj,d,f,parent,sort);
 }
