@@ -983,7 +983,7 @@ int main(){
 
 ## Breadth First Search(BFS)
 
-**idea:use a queue, initially enqueue the source, then every time when the queue is not empty, dequeue u and let every non-discoverd adjacent node of u as v, let dist[v]=dist[u]+1 and let parent if v be u, enqueue v. Thus achieving the goal of searching layer by layer **
+**idea:use a queue, initially enqueue the source, then every time when the queue is not empty, dequeue u and let every non-discovered adjacent node of u as v, let dist[v]=dist[u]+1 and let parent of v be u, enqueue v. Thus achieving the goal of searching layer by layer**
 
 ```cpp
 // 1-base
@@ -1033,16 +1033,15 @@ void Show_Shortest_Path(const vector<int>& parent,int path_node){  //to print th
 **idea: when a node is first dicovered, record its dicovered time, then do the same to all its adjacent node(like a stack, deeper to deeper), after all adjacent nodes has been discovered and no more adjacent node, it's said that the node is finished, record the finish time**
 
 ```cpp
-int DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int time,int u){
+void DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u){
     d[u]=++time;
     for(int v:adj[u]){
         if(d[v]==-1){
             parent[v]=u;
-            time=DFS_Visit(adj,d,f,parent,time,v);
+            DFS_Visit(adj,d,f,parent,time,v);
         }
     }
     f[u]=++time;
-    return time;
 }
 
 void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent){
@@ -1050,7 +1049,7 @@ void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int
     int n=d.size();
     for(int i=1;i<n;i++){
         if(d[i]==-1){
-            time=DFS_Visit(adj,d,f,parent,time,i);
+            DFS_Visit(adj,d,f,parent,time,i);
         }
     }
 }
@@ -1063,37 +1062,93 @@ void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int
 
 **Time Complexity: $O(V+E)$**
 
-### Topological Sort
-**only suitable for directed acyclic(no circuit) graph**
+### Circuit test
+
+1. for directed path, we can check if there exist a back edge(When (u,v) is first discoverd, v is gray, that is d[v]!=-1 and f[v]==-1). If it exists, there will be a circuit, it's not a DAG. 
+
+2. for undirected graph, since every (u,v) will point to each other, when v is from u, it will also test u, which must be a back edge(v,u), so it need to add a test that u should not be p's parent
+
 ```cpp
-void TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
+//int p and v!=p is the additional parament for undirected graph
+bool No_circuit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,int p){ 
     d[u]=++time;
     for(int v:adj[u]){
+        if(d[v]!=-1&&f[v]==-1&&v!=p){ //
+            return false;
+        }
+        else if(d[v]==-1){
+            parent[v]=u;
+            if(!No_circuit(adj,d,f,parent,time,v,u)){
+                return false;
+            }
+        }
+    }
+    f[u]=++time;
+    return true;;
+}
+
+bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent){
+    int time=0;  //timestamp
+    int n=d.size();
+    for(int i=1;i<n;i++){
+        if(d[i]==-1){
+            if(!No_circuit(adj,d,f,parent,time,i,-1)){
+                return false;
+            }
+        }
+    }
+    return true;
+}
+//bool is_DAG=DFS(adj,d,f,parent);
+```
+
+### Topological Sort
+
+==only suitable for directed acyclic(no circuit) graph (DAG)==
+
+**idea: Topological Sort is the sorting algorithm that satisfies that in a graph, for all (u,v), v must be later than u, so by the finish time in descending order, we can easily satisfies all these requirements, due to DFS's parenthesis structure**
+
+```cpp
+bool TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
+    d[u]=++time;
+    for(int v:adj[u]){
+        if(d[v]!=-1&&f[v]==-1){
+            return false;
+        }
         if(d[v]==-1){
             parent[v]=u;
-            TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index);
+            if(!TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index)){
+                return false;
+            }
+            
         }
     }
     f[u]=++time;
     sort[index]=u;
     index--;
+    return true;
 }
 
-void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
+bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
     int time=0;
     int n=d.size();
     int index=n-2;
     for(int i=1;i<n;i++){
         if(d[i]==-1){
-            TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index);
+            if(!TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index)){
+                return false;
+            }
         }
     }
+    return true;
 }
 
 // vector<int> d(V+1,-1);
 // vector<int> f(V+1,-1);
 // vector<int> parent(V+1,-1);
 // vector<int> sort(V);
-// DFS(adj,d,f,parent,sort);
+// if(!DFS(adj,d,f,parent,sort)){
+//      cout<<"Error, not a DAG"<<endl;
+// }
 // the result is stored in sort
 ```

@@ -2,28 +2,38 @@
 #include <vector>
 using namespace std;
 
-void TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
+bool TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
     d[u]=++time;
     for(int v:adj[u]){
+        if(d[v]!=-1&&f[v]==-1){
+            return false;
+        }
         if(d[v]==-1){
             parent[v]=u;
-            TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index);
+            if(!TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index)){
+                return false;
+            }
+            
         }
     }
     f[u]=++time;
     sort[index]=u;
     index--;
+    return true;
 }
 
-void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
+bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
     int time=0;
     int n=d.size();
     int index=n-2;
     for(int i=1;i<n;i++){
         if(d[i]==-1){
-            TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index);
+            if(!TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index)){
+                return false;
+            }
         }
     }
+    return true;
 }
 
 int main(){
@@ -41,5 +51,7 @@ int main(){
     vector<int> f(V+1,-1);
     vector<int> parent(V+1,-1);
     vector<int> sort(V);
-    DFS(adj,d,f,parent,sort);
+    if(!DFS(adj,d,f,parent,sort)){
+        cout<<"Error, not a DAG"<<endl;
+    }
 }
