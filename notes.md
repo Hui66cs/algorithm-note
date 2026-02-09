@@ -431,7 +431,7 @@ max_pq.pop();  //delete the greatest element while maintaining the max-heap prop
 max_pq.top();  //return the reference of the greatest element 
 
 priority_queue<int, vector<int>, greater<int>> min_pq;  //Min-Heap for int
-min_pq.psuh(x);
+min_pq.push(x);
 min_pq.pop();
 min_pq.top();
 // the priority_queue for a struct needs to overload the logic for comparing
@@ -444,6 +444,9 @@ Struct student{
     }
 }
 ```
+- note: in priority_queue<T, vector<T>, greater<T>> min_pq, 3 parameters mean datatype, container, comparator.
+container is always vector<datatype>, for the comparator great, a>b is true then a is not prior than b, so it's a min-heap.
+- for pair<int,int>, it will first compare the first one, then the second one
 
 ## Linked_list
 ```cpp
@@ -981,6 +984,21 @@ int main(){
 1. adjacent list need to add both side of the edge, so space complexity becomes $O(V+2E)$
 2. adjacent matrix becomes symmetric, the space complexity is still $O(V^2)$
 
+### for weighted graph
+```cpp
+int V;
+int E;
+cin>>V>>E;
+vector<vector<pair<int,int>>> adj(V+1);
+for(int i=0;i<E;i++){
+    int u;
+    int v;
+    int w;
+    cin>>u>>v>>w;;
+    adj[u].push_back({v,w});
+}
+```
+
 ## Breadth First Search(BFS)
 
 **idea:use a queue, initially enqueue the source, then every time when the queue is not empty, dequeue u and let every non-discovered adjacent node of u as v, let dist[v]=dist[u]+1 and let parent of v be u, enqueue v. Thus achieving the goal of searching layer by layer**
@@ -1109,15 +1127,14 @@ bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int
 **idea: Topological Sort is the sorting algorithm that satisfies that in a graph, for all (u,v), v must be later than u, so by the finish time in descending order, we can easily satisfies all these requirements, due to DFS's parenthesis structure**
 
 ```cpp
-bool TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,vector<int>& sort,int& index){
+bool TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,int& time,int u,vector<int>& sort,int& index){
     d[u]=++time;
     for(int v:adj[u]){
         if(d[v]!=-1&&f[v]==-1){
             return false;
         }
         if(d[v]==-1){
-            parent[v]=u;
-            if(!TopologicalSort_DFS_Visit(adj,d,f,parent,time,v,sort,index)){
+            if(!TopologicalSort_DFS_Visit(adj,d,f,time,v,sort,index)){
                 return false;
             }
             
@@ -1129,13 +1146,13 @@ bool TopologicalSort_DFS_Visit(const vector<vector<int>>& adj,vector<int>& d,vec
     return true;
 }
 
-bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,vector<int>& sort){
+bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& sort){
     int time=0;
     int n=d.size();
     int index=n-2;
     for(int i=1;i<n;i++){
         if(d[i]==-1){
-            if(!TopologicalSort_DFS_Visit(adj,d,f,parent,time,i,sort,index)){
+            if(!TopologicalSort_DFS_Visit(adj,d,f,time,i,sort,index)){
                 return false;
             }
         }
@@ -1152,3 +1169,195 @@ bool DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int
 // }
 // the result is stored in sort
 ```
+
+### Strong Connected Component(SCC) (Kosaraju) 
+
+meaning: every element in SCC can reach all other elements
+
+**idea: first do DFS for the graph, then do DFS for the reverse graph by the descending order of finish time in first DFS, then every tree formed in the second DFS is a SCC**
+
+```cpp
+void DFS_Visit_forward(const vector<vector<int>>& adj,vector<bool>& visited,int u,vector<int>& sort,int& index){
+    visited[u]=true;
+    for(int v:adj[u]){
+        if(!visited[v]){
+            DFS_Visit_forward(adj,visited,v,sort,index);
+        }
+    }
+    sort[index]=u;
+    index--;
+}
+
+void DFS_forward(const vector<vector<int>>& adj,vector<bool>& visited,vector<int>& sort){
+    int n=visited.size();
+    int index=n-2;
+    for(int u=1;u<n;u++){
+        if(!visited[u]){
+            DFS_Visit_forward(adj,visited,u,sort,index);
+        }
+    }
+}
+
+void DFS_Visit_backward(const vector<vector<int>>& adj,vector<bool>& visited,int u,vector<int>& current_scc){
+    visited[u]=true;
+    current_scc.push_back(u);
+    for(int v:adj[u]){
+        if(!visited[v]){
+            DFS_Visit_backward(adj,visited,v,current_scc);
+        }
+    }
+}
+
+void DFS_backward(const vector<vector<int>>& adj,vector<bool>& visited,const vector<int>& sort,vector<vector<int>>& scc){
+    int n=sort.size();
+    for(int u=0;u<n;u++){
+        if(!visited[sort[u]]){
+            vector<int> current_scc;
+            DFS_Visit_backward(adj,visited,sort[u],current_scc);
+            scc.push_back(current_scc);
+        }
+    }
+}
+
+//you can construct the reverse graph when input, then you don't need this function
+void reverse_graph(const vector<vector<int>>& adj,vector<vector<int>>& rev_adj){  
+    int n=adj.size();
+    for(int u=1;u<n;u++){
+        for(int v:adj[u]){
+            rev_adj[v].push_back(u);
+        }
+    }
+}
+
+void find_SCCs(const vector<vector<int>>& adj,vector<vector<int>>& scc){
+    int V=adj.size()-1;
+    vector<vector<int>> rev_adj(V+1);
+    reverse_graph(adj,rev_adj);
+    vector<bool> visited(V+1,false);
+    vector<int> sort(V,-1);
+    DFS_forward(adj,visited,sort);
+    fill(visited.begin(),visited.end(),false);
+    DFS_backward(rev_adj,visited,sort,scc);
+}
+
+```
+
+## Dijkstra
+==use solve Single-source shortest paths problem(SSSP) for weighted graph -- find the shortest paths from a source vertex to all other vertices.==
+- for Single-destination shortest paths problem, we can reverse the graph then use Dijkstra
+
+**idea: every time choose the node u which has the shortest distance currently, and update all the unchosen adjacent node's distance as the min of (current distance, d[u]+w(u,v))**
+
+```cpp
+// 1-base
+
+// using priority_queue and lazy_delete
+void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,vector<int>& parent,int s){
+    dist[s]=0;
+    //first is dist of the node, second is the index of this node
+    priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<pair<long long,int>>> heap; 
+    int n=dist.size();
+    for(int i=1;i<n;i++){
+        heap.push({dist[i],i});
+    }
+    while(!heap.empty()){
+        // important!!! We use lazy delete to replace the decrease-key: when find a shorter path, we don't directly update the corresponding heap element, but update the dist[] and push a new heap element with correct parament. So every time, during pop operation, we check if dist[] corresponds to the heap element' distance. If not, it the one we should delete in decrease-key, so we pop and continue. 
+        if(dist[heap.top().second]!=heap.top().first){
+            heap.pop();
+            continue;
+        }
+        int u=heap.top().second;
+        heap.pop();
+        int m=adj[u].size();
+        for(int v=0;v<m;v++){
+            //in adj[u][v], first is edge node, second is edge weight
+            if(dist[adj[u][v].first]>dist[u]+adj[u][v].second){  
+                parent[adj[u][v].first]=u;
+                dist[adj[u][v].first]=dist[u]+adj[u][v].second;
+                heap.push({dist[adj[u][v].first],adj[u][v].first});
+            }
+        }
+    }
+}
+
+
+//using true delete(decrease key)
+void Min_Heapify(vector<pair<long long,int>>& heap,int x,int heapsize,vector<int>& location){
+    int l=2*x;  //left child
+    int r=2*x+1;  //right child
+    int smallest;  
+    //to find the largest element between it and two childern
+    if(l<=heapsize&&heap[x].first>heap[l].first){
+        smallest=l;
+    }else{
+        smallest=x;
+    }
+    if(r<=heapsize&&heap[smallest].first>heap[r].first){
+        smallest=r;
+    }
+    if(x!=smallest){
+        swap(location[heap[x].second],location[heap[smallest].second]);
+        swap(heap[x],heap[smallest]);
+        Min_Heapify(heap,smallest,heapsize,location);
+    }
+}
+
+void Build_Min_Heap(vector<pair<long long,int>>& heap,int heapsize,vector<int>& location){
+    for(int i=heapsize/2;i>=1;i--){
+        Min_Heapify(heap,i,heapsize,location);
+    }
+}
+
+void Decrease_Key(vector<pair<long long,int>>& heap,int heapsize,vector<int>& location,long long s,int index){
+    int location_index=location[index];
+    heap[location_index].first=s;
+    int p=location_index/2;
+    while(true){
+        if(p==0||(heap[p].first<=heap[location_index].first)){
+            break;
+        }else{
+            swap(location[heap[p].second],location[heap[location_index].second]);
+            swap(heap[p],heap[location_index]);
+        }
+        location_index=p;
+        p=p/2;
+    }
+}
+
+void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,vector<int>& parent,int s){
+    dist[s]=0;
+    //first is dist of the node, second is the index of this node
+    int n=dist.size()-1;
+    vector<pair<long long,int>> heap;
+    vector<int> location;
+    heap.push_back({0,0});  //to occupy the null 
+    location.push_back(-1);
+    for(int i=1;i<n+1;i++){
+        heap.push_back({dist[i],i});
+        location.push_back(i);
+    }
+    Build_Min_Heap(heap,n,location);
+    while(n>0){
+        int u=heap[1].second;
+        swap(location[heap[1].second],location[heap[n].second]);
+        swap(heap[1],heap[n]);
+        n--;
+        Min_Heapify(heap,1,n,location);
+        int m=adj[u].size();
+        for(int v=0;v<m;v++){
+            //in adj[u][v], first is edge node, second is edge weight
+            if(location[adj[u][v].first]<=n&&dist[adj[u][v].first]>dist[u]+adj[u][v].second){  
+                parent[adj[u][v].first]=u;
+                dist[adj[u][v].first]=dist[u]+adj[u][v].second;
+                Decrease_Key(heap,n,location,dist[u]+adj[u][v].second,adj[u][v].first);
+            }
+        }
+    }
+}
+
+// vector<long long> dist(V+1,1e16);  dist may be very large, but initial value should not be LONG_MAX, since the comparison with addition will cause logical error
+// vector<int> parent(V+1,-1);
+// Dijkstra(adj,dist,parent,source);
+```
+
+**Time Complexity: $O((V+E)logV)$**
