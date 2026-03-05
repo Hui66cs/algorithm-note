@@ -7,8 +7,30 @@
 #include<algorithm>
 sort(arr.begin(),arr.end()); //increasing order
 sort(arr.begin(), arr.begin() + 4) //increasing for the first 4 elements
+
 #include <functional>
 sort(arr.begin(), arr.end(), greater<int>())  //decreasing order
+
+// design the sorting rules for a struct or class: by overloading the < operator
+// in struct or class
+bool operator<(const Node& other) const {
+    // It is sorted by score in decending order, when scores are same, small id will be ahead
+    if (score != other.score) {
+        return score > other.score; //higher score will be ahead
+    }
+    return id < other.id;
+}
+// when using sort, you can directly call sort(arr.begin(),arr.end())
+
+//another method is using lamda expression
+std::sort(arr.begin(), arr.end(), [](const student& a, const student& b) {  //[] can put other variables to use in the sorting rule design
+    if (a.score != b.score) {
+        return a.score > b.score; 
+    }
+    return a.id < b.id;
+});
+
+
 ```
 ## SelectionSort
 **idea**：from head to bottom，exchange the current element with the smallest elements behind it in every iteration，ensuring the first i element is the smallest i elements in the array and in order
@@ -467,6 +489,53 @@ it=list1.erase(it);  //delete the node it, and return the next pointer to it
 forward_list<T> list2;
 list2.push_front(x);
 list2.pop_front()
+```
+
+## Union Find Set (disjoint set union, DSU)
+**feature**: It can quickly check whether two nodes is connected in $O(\alpha(n))\approx O(1)$
+The root for the set is the element whose parent is itself
+The size of the set is stored in the size[root]
+
+this version is only suitable for consistent integers (maybe with Offset(Pian Yi))
+
+```cpp
+struct DSU{
+    vector<int> parent;
+    vector<int> size; 
+    
+    DSU(int n) {  //already know how many elements will be in the set
+        parent.resize(n);
+        size.resize(n, 1); 
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+        }
+    }
+
+    int Find(int u){  //Path Compression: when searching for the root, we can set all the passing through nodes's parent be the root
+        if(parent[u]==u){
+            return u;
+        }else{
+            return parent[u]=Find(parent[u]);
+        }
+    }
+
+    void Union(int a,int b){  //Union by size: always combine the smaller-size tree to the larger-size tree
+        int a_ancestor=Find(a);
+        int b_ancestor=Find(b);
+        if(a_ancestor==b_ancestor){
+            return;
+        }
+        int size_a=size[a_ancestor];
+        int size_b=size[b_ancestor];
+        if(size_a<size_b){
+            parent[a_ancestor]=b_ancestor;
+            size[b_ancestor]+=size[a_ancestor];
+        }else{
+            parent[b_ancestor]=a_ancestor;
+            size[a_ancestor]+=size[b_ancestor];
+        }
+    }
+};
 ```
 
 ## Binary Search Tree
@@ -1249,7 +1318,7 @@ void find_SCCs(const vector<vector<int>>& adj,vector<vector<int>>& scc){
 **idea: every time choose the node u which has the shortest distance currently, and update all the unchosen adjacent node's distance as the min of (current distance, d[u]+w(u,v))**
 
 ```cpp
-// 1-base
+// 1-base node
 
 // using priority_queue and lazy_delete
 void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,vector<int>& parent,int s){
@@ -1257,9 +1326,7 @@ void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,v
     //first is dist of the node, second is the index of this node
     priority_queue<pair<long long,int>, vector<pair<long long,int>>, greater<pair<long long,int>>> heap; 
     int n=dist.size();
-    for(int i=1;i<n;i++){
-        heap.push({dist[i],i});
-    }
+    heap.push({dist[s],s});
     while(!heap.empty()){
         // important!!! We use lazy delete to replace the decrease-key: when find a shorter path, we don't directly update the corresponding heap element, but update the dist[] and push a new heap element with correct parament. So every time, during pop operation, we check if dist[] corresponds to the heap element' distance. If not, it the one we should delete in decrease-key, so we pop and continue. 
         if(dist[heap.top().second]!=heap.top().first){
@@ -1281,7 +1348,7 @@ void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,v
 }
 
 
-//using true delete(decrease key)
+//using true delete(decrease key), 1-base heap
 void Min_Heapify(vector<pair<long long,int>>& heap,int x,int heapsize,vector<int>& location){
     int l=2*x;  //left child
     int r=2*x+1;  //right child
@@ -1302,15 +1369,8 @@ void Min_Heapify(vector<pair<long long,int>>& heap,int x,int heapsize,vector<int
     }
 }
 
-void Build_Min_Heap(vector<pair<long long,int>>& heap,int heapsize,vector<int>& location){
-    for(int i=heapsize/2;i>=1;i--){
-        Min_Heapify(heap,i,heapsize,location);
-    }
-}
-
-void Decrease_Key(vector<pair<long long,int>>& heap,int heapsize,vector<int>& location,long long s,int index){
-    int location_index=location[index];
-    heap[location_index].first=s;
+void Bubble_Up(vector<pair<long long,int>>& heap,vector<int>& location,int node_index){
+    int location_index=location[node_index];
     int p=location_index/2;
     while(true){
         if(p==0||(heap[p].first<=heap[location_index].first)){
@@ -1327,29 +1387,37 @@ void Decrease_Key(vector<pair<long long,int>>& heap,int heapsize,vector<int>& lo
 void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,vector<int>& parent,int s){
     dist[s]=0;
     //first is dist of the node, second is the index of this node
-    int n=dist.size()-1;
-    vector<pair<long long,int>> heap;
-    vector<int> location;
-    heap.push_back({0,0});  //to occupy the null 
-    location.push_back(-1);
-    for(int i=1;i<n+1;i++){
-        heap.push_back({dist[i],i});
-        location.push_back(i);
-    }
-    Build_Min_Heap(heap,n,location);
-    while(n>0){
+    int n=dist.size();
+    vector<pair<long long,int>> heap(n+1,{1e16,-1});
+    vector<int> location(n,-1);
+    heap[1]={dist[s],s};
+    location[s]=1;
+    int count=1;
+    while(count>0){
         int u=heap[1].second;
-        swap(location[heap[1].second],location[heap[n].second]);
-        swap(heap[1],heap[n]);
-        n--;
-        Min_Heapify(heap,1,n,location);
+        swap(location[u],location[heap[count].second]);
+        swap(heap[1],heap[count]);
+        location[u]=-2;  //finished
+        count--;
+        Min_Heapify(heap,1,count,location);
         int m=adj[u].size();
-        for(int v=0;v<m;v++){
-            //in adj[u][v], first is edge node, second is edge weight
-            if(location[adj[u][v].first]<=n&&dist[adj[u][v].first]>dist[u]+adj[u][v].second){  
-                parent[adj[u][v].first]=u;
-                dist[adj[u][v].first]=dist[u]+adj[u][v].second;
-                Decrease_Key(heap,n,location,dist[u]+adj[u][v].second,adj[u][v].first);
+        for(int i=0;i<m;i++){
+            //in adj[u][i], first is edge node, second is edge weight
+            int v=adj[u][i].first;
+            if(location[v]!=-2&&dist[v]>dist[u]+adj[u][i].second){  
+                parent[v]=u;
+                dist[v]=dist[u]+adj[u][i].second;
+                // decrease key
+                if(location[v]==-1){
+                // the node is not in the heap, insert it to the bottom and bubble up
+                    heap[++count]={dist[v],v};
+                    location[v]=count;
+                    Bubble_Up(heap,location,v);
+                }else{
+                // the node is already in the heap, update the distance and bubble up
+                    heap[location[v]].first=dist[v];
+                    Bubble_Up(heap,location,v);
+                }
             }
         }
     }
@@ -1361,3 +1429,121 @@ void Dijkstra(const vector<vector<pair<int,int>>>& adj,vector<long long>& dist,v
 ```
 
 **Time Complexity: $O((V+E)logV)$**
+
+## Minimun Spanning Tree (MST)
+==find a tree which can cover all the vertex with minimum total weight of the edges==
+
+### Kruskal's Algorithm 
+==suitable for sparse graph==
+
+**idea: sort the edges in the graph in acending order, by union find set, check each edge in order to find if two nodes of that edge is in one set, if not then union them into a set, add this edge to the set "tree". Finally the the set "tree" is the minimum spaning tree's edges.**
+
+Since Kruskal needs to sort the edges, it's not good to use adjacent list to record the graph. Instead, we can use a vector<Edge> to record the graph, which will be much easier. What's more, when checking whther the graph is connected, we can check if the number of edges added to the tree = V-1 due to Union Find Set's property.
+
+```cpp
+struct Edge{
+    int u;
+    int v;
+    int w;
+
+    bool operator<(const Edge& other) const {
+        return w < other.w;
+    }
+};
+
+struct DSU{
+    vector<int> parent;
+    vector<int> size; 
+
+    DSU(){
+        parent.push_back(-1);
+        size.push_back(-1);
+    }
+    
+    void make_set(int n){
+        for(int i=1;i<n+1;i++){
+            parent.push_back(i);
+            size.push_back(1);
+        }
+    }
+
+    int Find(int u){
+        if(parent[u]==u){
+            return u;
+        }else{
+            return parent[u]=Find(parent[u]);
+        }
+    }
+
+    void Union(int a,int b){
+        int a_ancestor=Find(a);
+        int b_ancestor=Find(b);
+        if(a_ancestor==b_ancestor){
+            return;
+        }
+        int size_a=size[a_ancestor];
+        int size_b=size[b_ancestor];
+        if(size_a<size_b){
+            parent[a_ancestor]=b_ancestor;
+            size[b_ancestor]+=size[a_ancestor];
+        }else{
+            parent[b_ancestor]=a_ancestor;
+            size[a_ancestor]+=size[b_ancestor];
+        }
+    }
+};
+
+void Kruskal(vector<Edge>& edges,vector<Edge>& tree,int m){
+    sort(edges.begin(), edges.end());
+    DSU dsu;  //union-find
+    dsu.make_set(m);
+    int n=edges.size();
+    for(int i=0;i<n;i++){
+        int u=edges[i].u;
+        int v=edges[i].v;
+        if(dsu.Find(u)!=dsu.Find(v)){
+            dsu.Union(u,v);
+            tree.push_back(edges[i]);
+        }
+    }
+}
+```
+
+**Time Complexity: $O(ElogE)$**
+
+### Prim's Algorithm
+==suitable for dense graph==
+**idea: always pick the vertex(which has not been picked yet) which is closest to the tree made up of the already-picked nodes, and update all the adjacent vertex's distance to w(u,v) if this weight is smaller than the original distance**
+
+```cpp
+void Prim(const vector<vector<pair<int,int>>>& adj,vector<int>& dist,vector<int>& parent){
+    priority_queue<pair<int,int>, vector<pair<int,int>>, greater<pair<int,int>>> heap;
+    int n=adj.size();
+    vector<bool> visited(n,false);
+    parent[1]=0;
+    dist[1]=0;
+    heap.push({dist[1],1});    
+    while(!heap.empty()){
+        //if it has been visited it should be skipped(lazy delete)
+        //e.g. a node updated first as 10, next as 5. Then first pop will be the 5, it is marked as visited. Then later when it pop 10, it will skip it 
+        if(visited[heap.top().second]){  
+            heap.pop();
+            continue;
+        }
+        int u=heap.top().second;
+        visited[u]=true;
+        heap.pop();
+        int m=adj[u].size();
+        for(int i=0;i<m;i++){
+            int v=adj[u][i].first;
+            int weight=adj[u][i].second;
+            if(!visited[v]&&weight<dist[v]){
+                dist[v]=weight;
+                parent[v]=u;
+                heap.push({dist[v],v});
+            }
+        }
+    }
+}
+```
+**Time Complexity: $O((V+E)logV)$** 
