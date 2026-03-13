@@ -1,7 +1,4 @@
-
-- **Name:朱恒辉**
-- **Student ID：12412412**
----
+# exercise1
 
 ## Brief Description
 - preprocessing: sort the preference list for every students. For each college, create an inverse mapping to check the evaluation score for a specific student in O(1)    
@@ -52,6 +49,8 @@ Now I prove the definition2(the unstable pair).
   4. if s1 has applied to c1, and c1 is not full, it only happens when the score c1 gives to s1 is negative, so it also forms a contradiction
 - Due to the contradiction, (s1,c1) should be a stable pair. So there doesn't exist an unstable pair
 
+---
+
 ## Student-Optimal
 
 ### Definition
@@ -64,3 +63,11 @@ Now I prove the definition2(the unstable pair).
 - since students apply to college in decreasing preferred order, so in M* s1 must apply to c1 but rejected. Due to c1 to s1's score is positive, c1 must be full. So c1 prefers accepted students to s1, let s2 be the one who isn't chosen by c1 in M(since M's capacity is a const, it accept c1, due to pigeonhole principle at least one in M* will be rejected). We have c1:s2>s1
 - Notice that in M*, s1 is the first student who isn't assigned to his most preferred valid college. And c1 can reject s1, that means c1 is full, s2 is assigned to c1, and c1 is s2's most preferred college. So we have s2:c1> other colleges
 - with c1:s2>s1 , s2:c1> other, and in M (s1,c1) is a pair. We can conclude that it is an unstable pair, this contradicts to assuming M is a stable matching. So it's student-optimal
+
+# exercise2
+
+这题实际上是转化为稳定匹配问题。
+1. 当没有边权限制时，很容易发现这是一个二分图，进行完美匹配后，Bob后出手，实际上就是先走第一条线，最终Bob总能走最后一套线而获胜。
+2. 加入了边权限制之后，只需运用稳定匹配即可。只要没有不稳定对的出现，走法实际上是和完美匹配几乎一样的，而稳定匹配可以保证没有不稳定对的出现
+3. 这里不稳定对是这样看的：假设Alice选I，Bob选D。考虑左边有两个点A,B；右边有两个点C,D。Alice一开始选了A，Bob走了B，然后Alice走C，Bob假设卡住了，走不到D。由于Alice选的是I，必须满足：$w(B,C)>w(A,B)$;Bob选的D，由于走不到D，说明必须满足:$w(B,C)<w(C,D)$。而B（Alice）是是喜大得。觉得C比A好；C（Bob）是喜小的，觉得B比D好，即（B,C）是个不稳定对。 **这里和婚姻匹配有点不一样，GS的偏好列表是同向的，而这道题由于ID,所以是反向的，不稳定对要注意**。但稳定匹配保证了不存在不稳定对，所以Bob不会卡住，因此Bob必胜。
+4. 这里再说一下稳定匹配的偏好列表。对于左侧点，应该按喜小排，因为他匹配的点是Bob在选；繁殖，右侧点是按喜大排。

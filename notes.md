@@ -1547,3 +1547,54 @@ void Prim(const vector<vector<pair<int,int>>>& adj,vector<int>& dist,vector<int>
 }
 ```
 **Time Complexity: $O((V+E)logV)$** 
+
+# Greedy Algorithm
+
+## Interval-Scheduling
+```cpp
+void interval_partition(vector<tuple<int,int,int>>& course,vector<vector<int>>& schedule){
+    //course[i].first是开始时间，course[i].second是结束时间，course[i].third是课程编号
+    sort(course.begin(),course.end());
+    int n=course.size();
+    priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> finish_time; //first是结束时间，second是教室编号
+    for(int i=0;i<n;i++){
+        int early;
+        int room_id;
+        if(!finish_time.empty()){
+            early=finish_time.top().first;
+            room_id=finish_time.top().second;
+        }
+        if(finish_time.empty() || get<0>(course[i])<early){
+            finish_time.push(pair<int,int>(get<1>(course[i]),schedule.size()));
+            vector<int> new_room;
+            new_room.push_back(get<2>(course[i]));
+            schedule.push_back(new_room);
+        }else{
+            schedule[room_id].push_back(get<2>(course[i]));
+            finish_time.pop();
+            finish_time.push(pair<int,int>(get<1>(course[i]),room_id));
+        }
+    }
+}
+```
+
+## Minimum_Lateness
+
+```cpp
+int minimum_lateness(vector<tuple<int,int,int>>& tasks){
+    //tasks[i].first是ddl时刻，tasks[i].second是任务用时，tasks[i].third是任务编号
+    sort(tasks.begin(),tasks.end());
+    int n=tasks.size();
+    int t=0;
+    int max_delay=0;
+    for(int i=0;i<n;i++){
+        if(t+get<1>(tasks[i])>get<0>(tasks[i])){
+            if (t+get<1>(tasks[i])-get<0>(tasks[i])>max_delay){
+                max_delay=t+get<1>(tasks[i])-get<0>(tasks[i]);
+            }
+        }
+        t+=get<1>(tasks[i]);
+    }
+    return max_delay;
+}
+```
