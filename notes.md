@@ -1551,6 +1551,9 @@ void Prim(const vector<vector<pair<int,int>>>& adj,vector<int>& dist,vector<int>
 # Greedy Algorithm
 
 ## Interval-Scheduling
+
+**idea：sort the course by start time in ascending order, then compare them to the earliest finish time of current classrooms latest courses. If compatible, then put the course in the correspondent classroom,if not then open a new classroom**
+
 ```cpp
 void interval_partition(vector<tuple<int,int,int>>& course,vector<vector<int>>& schedule){
     //course[i].first是开始时间，course[i].second是结束时间，course[i].third是课程编号
@@ -1580,6 +1583,8 @@ void interval_partition(vector<tuple<int,int,int>>& course,vector<vector<int>>& 
 
 ## Minimum_Lateness
 
+**idea:put the class in the order of the ddl ascending** 
+
 ```cpp
 int minimum_lateness(vector<tuple<int,int,int>>& tasks){
     //tasks[i].first是ddl时刻，tasks[i].second是任务用时，tasks[i].third是任务编号
@@ -1596,5 +1601,54 @@ int minimum_lateness(vector<tuple<int,int,int>>& tasks){
         t+=get<1>(tasks[i]);
     }
     return max_delay;
+}
+```
+
+## Optimal Caching
+
+**idea: if the cache is not full, directly insert it in; if it's full, evict the one that will be farthest in future to use**
+
+```cpp
+int optimal_caching_evict(const vector<string>& Input,int k){
+    // k为缓存最大容量
+    int n=Input.size();
+    int m=0; //m为驱逐次数
+    int t=0; //t为缓存内元素个数
+    unordered_map<string,queue<int>> location;  //对应字符及其出现过的索引
+    priority_queue<pair<int,string>> farthest;  //first为下一次出现的索引，second为对应字符
+    unordered_map<string,bool> Is_in_cache;  //是否在缓存里
+    unordered_map<string,int> next_index;  //用于处理懒删除
+    for(int i=0;i<n;i++){
+        location[Input[i]].push(i);
+        Is_in_cache[Input[i]]=false;
+    }
+    for(int i=0;i<n;i++){
+        location[Input[i]].pop();
+        int next=INT_MAX;
+        if(!location[Input[i]].empty()){
+            next=location[Input[i]].front();
+        }
+        next_index[Input[i]]=next;
+        if(Is_in_cache[Input[i]]){
+            farthest.push(pair<int,string>(next,Input[i]));
+            continue;
+        }else{
+            if(t<k){
+                Is_in_cache[Input[i]]=true;
+                t++;
+            }else{
+                while(!Is_in_cache[farthest.top().second] || next_index[farthest.top().second]!=farthest.top().first){
+                    farthest.pop();
+                }
+                string top=farthest.top().second;
+                farthest.pop();
+                Is_in_cache[top]=false;
+                Is_in_cache[Input[i]]=true;
+                m++;
+            }
+        }
+        farthest.push(pair<int,string>(next,Input[i]));
+    }
+    return m;
 }
 ```
