@@ -1,44 +1,46 @@
 #include<bits/stdc++.h>
 using namespace std;
-int optimal_caching_evict(const vector<string>& Input,int k){
-    // k为缓存最大容量
-    int n=Input.size();
-    int m=0; //m为驱逐次数
-    int t=0; //t为缓存内元素个数
-    unordered_map<string,queue<int>> location;  //对应字符及其出现过的索引
-    priority_queue<pair<int,string>> farthest;  //first为下一次出现的索引，second为对应字符
-    unordered_map<string,bool> Is_in_cache;  //是否在缓存里
-    unordered_map<string,int> next_index;  //用于处理懒删除
+int main(){
+    int n;
+    cin>>n;
+    vector<int> t(n);
+    vector<int> w(n);
+    vector<tuple<int,int,int>> game(n);
+    // first是t（ddl），second是w（罚款），third是游戏编号
     for(int i=0;i<n;i++){
-        location[Input[i]].push(i);
-        Is_in_cache[Input[i]]=false;
+        cin>>t[i];
     }
     for(int i=0;i<n;i++){
-        location[Input[i]].pop();
-        int next=INT_MAX;
-        if(!location[Input[i]].empty()){
-            next=location[Input[i]].front();
-        }
-        next_index[Input[i]]=next;
-        if(Is_in_cache[Input[i]]){
-            farthest.push(pair<int,string>(next,Input[i]));
-            continue;
+        cin>>w[i];
+    }
+    for(int i=0;i<n;i++){
+        get<0>(game[i])=t[i];
+        get<1>(game[i])=w[i];
+        get<2>(game[i])=i+1;
+    }
+    sort(game.begin(),game.end());
+    priority_queue<pair<int,int>,vector<pair<int,int>>,greater<pair<int,int>>> accept; //first是罚款，second是game编号
+    int cost=0;
+    for(int i=0;i<n;i++){
+        if(get<0>(game[i])>accept.size()){
+            accept.push(pair<int,int>(get<1>(game[i]),get<2>(game[i])));
         }else{
-            if(t<k){
-                Is_in_cache[Input[i]]=true;
-                t++;
-            }else{
-                while(!Is_in_cache[farthest.top().second] || next_index[farthest.top().second]!=farthest.top().first){
-                    farthest.pop();
-                }
-                string top=farthest.top().second;
-                farthest.pop();
-                Is_in_cache[top]=false;
-                Is_in_cache[Input[i]]=true;
-                m++;
+            int min_cost=accept.top().first;
+            if(get<1>(game[i])>min_cost){
+                accept.pop();
+                accept.push(pair<int,int>(get<1>(game[i]),get<2>(game[i])));
             }
         }
-        farthest.push(pair<int,string>(next,Input[i]));
     }
-    return m;
+    vector<bool> c(n+1,true);
+    while(!accept.empty()){
+        c[accept.top().second]=false;
+        accept.pop();
+    }
+    for(int i=1;i<n+1;i++){
+        if(c[i]){
+            cost+=w[i-1];
+        }
+    }
+    cout<<cost<<endl;
 }

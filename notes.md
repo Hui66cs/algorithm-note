@@ -491,6 +491,26 @@ list2.push_front(x);
 list2.pop_front()
 ```
 
+## Hash Table
+**feature**: It can get the value from the table by key in O(1), like the dictionary in Python. It's also similar to array, but the index become key, and the element become value.
+```cpp
+#include <unordered_map>
+unordered_map<string,int> hash_table;  //key is string type, value is int type, it can also use other types even like queue
+string s;
+hash_table[s]=x; //if s is not in that unordered_map as key, it will create a key of s, and x be its value. if s has been in that unordered_map, it will change its correspondent value become x.
+cout<<hash_table[s]<<endl;  //when you need to get the value, just use it like an array 
+```
+
+## Set
+**feature**: Just like the set mathmatically, it's a set, similar to unordered_map but not values, only keys. They can be checked, insert, delete in O(1)
+```cpp
+#include <unordered_set>
+unordered_set<int> myset;
+myset.insert(10);
+myset.erase(10);
+myset.find(10); // true is in
+```
+
 ## Union Find Set (disjoint set union, DSU)
 **feature**: It can quickly check whether two nodes is connected in $O(\alpha(n))\approx O(1)$
 The root for the set is the element whose parent is itself
@@ -993,6 +1013,18 @@ void Delete(TreeNode*& root,int x){
 }
 ```
 
+## Red-Black Tree
+**feature**: like the unordered_map, but it will autonmatically sort the element in the ascending order of the keys  
+```cpp
+#include <map>
+unordered_map<int,string> tree;  //key is string type, value is int type, it can also use other types even like queue
+int x;
+string s;
+tree[x]=string;
+// iterate in order
+for(auto const& [key, val] : tree){
+    cout << key << ": " << val << endl;
+}
 ---
 
 # Graph Algorithms
