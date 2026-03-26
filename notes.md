@@ -498,6 +498,7 @@ list2.pop_front()
 unordered_map<string,int> hash_table;  //key is string type, value is int type, it can also use other types even like queue
 string s;
 hash_table[s]=x; //if s is not in that unordered_map as key, it will create a key of s, and x be its value. if s has been in that unordered_map, it will change its correspondent value become x.
+hash_table.erase(s); // delete the key-value pair which key=s
 cout<<hash_table[s]<<endl;  //when you need to get the value, just use it like an array 
 ```
 
@@ -1346,6 +1347,7 @@ void find_SCCs(const vector<vector<int>>& adj,vector<vector<int>>& scc){
 ## Dijkstra
 ==use solve Single-source shortest paths problem(SSSP) for weighted graph -- find the shortest paths from a source vertex to all other vertices.==
 - for Single-destination shortest paths problem, we can reverse the graph then use Dijkstra
+- for single-source to single-destination's shortest path, using A* Search will be much better(but it need heuristic information)
 
 **idea: every time choose the node u which has the shortest distance currently, and update all the unchosen adjacent node's distance as the min of (current distance, d[u]+w(u,v))**
 
