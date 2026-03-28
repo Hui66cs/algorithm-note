@@ -1,114 +1,3 @@
-## practise1
-### 题目要求
-1. 每次操作前，evict 没使用时间>T的key
-2. 每次执行op2时，若目前容量满了，evict 使用频率最低（相同则evict 最久没被使用）的key
-3. 增加used frequency：被执行op1 或 op2中key被修改value(latest used time也要更改)
-3. 两个op限制时间复杂度为O(1)
-
-### 解法
-1. 维护一个unordered_map，记录key-（value，frequency，lastest used timestamp） , 维护一个整数：当前时间戳 
-**用lastest used time，每秒要更新全部，O（n）**
-2. 维护一个queue<pair(key,lastest used timestamp)>，记录的加入顺序，每次op先检查队首是否在unordered_map中（或lastest used timestamp对和map是否一致），不在则先出队，再查看队首前面点的not used time>T则淘汰（找到<=T则直接break） **对应要求1**
-**不能是key-value，万一改两次改回原来值就失效了**
-3. 维护一个unordered_map<int,list<int>>，记录frequency-key(按加入的顺序)**对应要求2**
-
-## practise2
-### 题目要求
-1. 给定一个5*5的图，里面有黑马、白马、1个空格。位置是乱序的
-2. 需要进行尽量少次对马的移动，使结果与题目给的目标图一致
-
-### 解法
-#### 法1：IDA*（深度迭代优先搜素）
-1. 定义评价函数h：除了最中间的格子，现在图中有多少格子的状态和目标状态不一样。这也是从当前状态变到最终状态的最少步数（不一定能实现）
-2. IDA*算法：本质是BFS和DFS的结合。
-    - 利用BFS的思想设置深度限制，以保证找到的是最优解，防止普通DFS一搜到底
-    - 利用DFS的思想进行回溯，DFS传入参数里要包含步数限制
-    - 利用h进行剪枝，遇到已走步数+h>要求步数时跳过该点的dfs，因为已经不可能满足要求了
-```cpp
-vector<vector<char>> board(6,vector<char>(6));
-const char goal[6][6] = {
-    {0, 0, 0, 0, 0, 0},
-    {0, '1', '1', '1', '1', '1'},
-    {0, '0', '1', '1', '1', '1'},
-    {0, '0', '0', '*', '1', '1'},
-    {0, '0', '0', '0', '0', '1'},
-    {0, '0', '0', '0', '0', '0'}
-};
-vector<int> move_x={2,2,-2,-2,1,1,-1,-1};
-vector<int> move_y={1,-1,1,-1,2,-2,2,-2};
-int get_h(){
-    int count=0;
-    for(int i=1;i<6;i++){
-        for(int j=1;j<6;j++){
-            if(i==3&&j==3){
-                continue;
-            }
-            if(board[i][j]!=goal[i][j]){
-                count++;
-            }
-        }
-    }
-    return count;
-}
-bool dfs(int current_step,int max_step,int x,int y,int last_x,int last_y){
-    int h=get_h();
-    if(h==0){
-        return true;
-    }
-    if(current_step+h>max_step){
-        return false;
-    }else{
-        for(int i=0;i<8;i++){
-            int nx=x+move_x[i];
-            int ny=y+move_y[i];
-            if(nx>=1&&nx<=5&&ny>=1&&ny<=5&&(nx!=last_x || ny!=last_y)){
-                swap(board[x][y],board[nx][ny]);
-                if(!dfs(current_step+1,max_step,nx,ny,x,y)){ //失败，回溯
-                    swap(board[x][y],board[nx][ny]);
-                }else{
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-}
-int main(){
-    int T;
-    cin>>T;
-    for(int i=0;i<T;i++){
-        int x=0;
-        int y=0;
-        int current_step=0;
-        bool find=false;
-        for(int j=1;j<6;j++){
-            for(int k=1;k<6;k++){
-                cin>>board[j][k];
-                if(board[j][k]=='*'){
-                    x=j;
-                    y=k;
-                }
-            }
-        }
-        for(int j=0;j<=20;j++){
-            if(dfs(current_step,j,x,y,0,0)){
-                find=true;
-                cout<<j<<endl;
-                break;
-            }
-        }
-        if(!find){
-            cout<<-1<<endl;
-        }
-    }
-}
-```
-
-#### 法2：双向BFS（先从终点出发10步，再从起点出发10步）
-1. 思路：先从终点开始反向bfs（bfs逐层），若能提前达到起点状态，则目前走过的层数即为最小步数。若不能，则走10步时终止，用unordered_set存储从终点所能抵达的所有状态的uint形式。然后进行正向bfs，若某一层结束的状态能在unordered_set查询到，则最小步数为该层数+10.若正向10层也未能查询到，则宣告失败，输出-1 
-2. 为了记录状态，采用二进制unsigned int存储，uint[29:25]表示的数为空格所在的格子编号,uint[24:0]遍历各个格子，若格子为黑马则是1。根据互斥性，除了格子和黑马，剩下的就是红马了，足够用整数进行唯一存储。
-
-```cpp
 #include<bits/stdc++.h>
 using namespace std;
 typedef unsigned int uint;
@@ -231,7 +120,7 @@ bool double_bfs(uint start){
                         cout<<cur_step+1<<endl;
                         return true;
                     }
-                    if(cur_step+1==10){
+                    if(cur_step+1==7){
                         back_bfs.insert(nstate);
                     }else{
                         q.push(make_pair(nstate,cur_step+1));
@@ -257,7 +146,7 @@ bool double_bfs(uint start){
                         cout<<cur_step+1<<endl;
                         return true;
                     }
-                    if(cur_step+1==10){
+                    if(cur_step+1==7){
                         back_bfs.insert(nstate);
                     }else{
                         q.push(make_pair(nstate,cur_step+1));
@@ -268,7 +157,7 @@ bool double_bfs(uint start){
         }
     }
 
-    p.push(make_pair(start,10));
+    p.push(make_pair(start,7));
     unordered_set<uint> discovered2;
     discovered2.insert(start);
     while(!p.empty()){
@@ -288,7 +177,7 @@ bool double_bfs(uint start){
                 }
                 uint nstate=nblank<<25|nhorse;
                 if(discovered2.count(nstate)==0){
-                    if(cur_step+1<=20){
+                    if(cur_step+1<=15){
                         if(back_bfs.count(nstate)==1){
                             cout<<cur_step+1<<endl;
                             return true;
@@ -312,7 +201,7 @@ bool double_bfs(uint start){
                 }
                 uint nstate=nblank<<25|nhorse;
                 if(discovered2.count(nstate)==0){
-                    if(cur_step+1<=20){
+                    if(cur_step+1<=15){
                         if(back_bfs.count(nstate)==1){
                             cout<<cur_step+1<<endl;
                             return true;
@@ -350,4 +239,3 @@ int main(){
     }
 
 }
-```

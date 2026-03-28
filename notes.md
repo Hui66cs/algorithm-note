@@ -483,7 +483,9 @@ list1.merge();  //merge 2 sorted lists
 list1.insert_after(list1.begin()+k,z);  //insert z after the (k+1)th element
 auto it=list1.begin();  //Iterator(smart pointer), it++ means it->next. list1.begin() and list1.end() is two side
 //*it can get the value or the object
-it=list1.erase(it);  //delete the node it, and return the next pointer to it 
+it=list1.erase(it);  //delete the node it, and return the next pointer to it。这里it一定要是iterator才行
+--list1.end() //链表最后一个元素的iterator，list1.end()是链表最后一个元素外的空元素iterator
+list1.front() //开头的元素iterator
 
 #include <forward_list>  //singly linked list, more efficient
 forward_list<T> list2;
@@ -509,7 +511,7 @@ cout<<hash_table[s]<<endl;  //when you need to get the value, just use it like a
 unordered_set<int> myset;
 myset.insert(10);
 myset.erase(10);
-myset.find(10); // true is in
+myset.count(10); // 1 is in, 0 is not in
 ```
 
 ## Union Find Set (disjoint set union, DSU)
@@ -1026,6 +1028,8 @@ tree[x]=string;
 for(auto const& [key, val] : tree){
     cout << key << ": " << val << endl;
 }
+```
+
 ---
 
 # Graph Algorithms
@@ -1347,7 +1351,7 @@ void find_SCCs(const vector<vector<int>>& adj,vector<vector<int>>& scc){
 ## Dijkstra
 ==use solve Single-source shortest paths problem(SSSP) for weighted graph -- find the shortest paths from a source vertex to all other vertices.==
 - for Single-destination shortest paths problem, we can reverse the graph then use Dijkstra
-- for single-source to single-destination's shortest path, using A* Search will be much better(but it need heuristic information)
+- for single-source to single-destination's shortest path, using A* Search will be much better(but it need heuristic information). Double side BFS(need hash table to record the middle result) and IDA* are also acceptable
 
 **idea: every time choose the node u which has the shortest distance currently, and update all the unchosen adjacent node's distance as the min of (current distance, d[u]+w(u,v))**
 
@@ -1581,6 +1585,38 @@ void Prim(const vector<vector<pair<int,int>>>& adj,vector<int>& dist,vector<int>
 }
 ```
 **Time Complexity: $O((V+E)logV)$** 
+
+## IDA* Search
+* usage: to greatly reduce the cost for finding the minimum steps from one state to another. Using only BFS needs too many searchings, while using only DFS can' promise the best solution. Another solution is BFS in two sides(meet at middle)
+**idea: use DFS to simulate BFS, and use heuristic function to prun(剪枝)**
+define h(x) to estimate the remaining cost to achieve the goal state(it should not be larger than the real cost)
+Then use a for-loop to constrain the depth for DFS in each iterations. For each node the DFS go throughs, use h(x) to decide whether should give up going deeper.
+
+```cpp
+bool IDA(int current_step,int max_step,int x,int y,int last_x,int last_y){
+    int h=get_h();
+    if(h==0){
+        return true; //achieve the goal, teminate early.
+    }
+    if(current_step+h>max_step){ //f=g+h>limit
+        return false;  //this path can't achieve in demand, prunning. 
+    }else{
+        for(int i=0;i<8;i++){
+            int nx=x+move_x[i];
+            int ny=y+move_y[i];
+            if(nx>=1&&nx<=5&&ny>=1&&ny<=5&&(nx!=last_x || ny!=last_y)){
+                swap(board[x][y],board[nx][ny]);
+                if(!dfs(current_step+1,max_step,nx,ny,x,y)){ //fail,go back 
+                    swap(board[x][y],board[nx][ny]);
+                }else{
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+```
 
 # Greedy Algorithm
 
