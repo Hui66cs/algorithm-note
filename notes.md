@@ -1722,3 +1722,110 @@ int optimal_caching_evict(const vector<string>& Input,int k){
     return m;
 }
 ```
+
+# Devide And Conquer
+## counting reverse pairs
+**idea**: similar to MergeSort, continue devide the array into two parts until there is only one element. Since two subarrays are sorted, we can count the reverse pairs across two subarrays in O(n), then merge two sorted subarrays into a large sorted array.
+```cpp
+long long count_reverse_pair(vector<int>& arr,int i,int j){
+    if(j-i+1==1){
+        return 0;
+    }else{
+        int mid=i+(j-i)/2;
+        long long left=count_reverse_pair(arr,i,mid);
+        long long right=count_reverse_pair(arr,mid+1,j);
+        int a=i;
+        int b=mid+1;
+        long long cross=0;
+        while(b<=j && a<=mid){
+            if(arr[b]<arr[a]){
+                cross=cross+mid-a+1;
+                b++;
+            }else{
+                a++;
+            }
+        }
+        vector<int> left_arr(mid-i+2);
+        vector<int> right_arr(j-mid+1);
+        for(int k=i;k<=mid;k++){
+            left_arr[k-i]=arr[k];
+        }
+        left_arr[mid-i+1]=INT_MAX;
+        for(int k=mid+1;k<=j;k++){
+            right_arr[k-mid-1]=arr[k];
+        }
+        right_arr[j-mid]=INT_MAX;
+        a=0;
+        b=0;
+        for(int k=i;k<=j;k++){
+            if(left_arr[a]<right_arr[b]){
+                arr[k]=left_arr[a];
+                a++;
+            }else{
+                arr[k]=right_arr[b];
+                b++;
+            }
+        }
+        return left+cross+right;
+    }
+}
+```
+
+## closest pair points
+1. read all points and sort them by x in increasing order, if same then sort by y. 
+2. devide the plain into two parts(cut at arr[(i+j)/2].x) recursively until j-i==0, then return $\infty$.
+3. then we need to calculate the closest pairs in left、right、across left and right. Left and right will be calculated in the recursive conquer part, we only need to consider the across part.
+4. for the aross part, we first get the closer pairs' distance of left and right closest pairs as $sigma$. Then we only need to consider the points which x is in the range of $(mid-\sigma,mid+\sigma)$. For every points in this area which y is y', we only need to compare the points which y is in range of $(y',y'+\sigma)$. In such an area of x in $(mid-\sigma,mid+\sigma)$, y in $(y',y'+\sigma)$, there are at most 6 points(when all the points are on the vertices of such a rectangle). So for evert points, it only need to check 5 ppints after it by y sorted.
+5. in order to sort y in O(n), we can simulate MergeSort, assume left and right points are already sorted, then you should reorder the point position of arr[x_min,x_max], not consider the x now, just sort them by y using MergeSort' Merge
+
+```cpp
+double find(vector<pair<int,int>>& point,int i,int j){
+    if(j==i){
+        return INT_MAX;
+    }
+    int mid=(i+j)/2;
+    int mid_x=point[mid].first;
+    double left=find(point,i,mid);
+    double right=find(point,mid+1,j);
+    vector<pair<int,int>> left_temp(mid-i+2);
+    vector<pair<int,int>> right_temp(j-mid+1);
+    left_temp[mid-i+1]=make_pair(INT_MAX,INT_MAX);
+    right_temp[j-mid]=make_pair(INT_MAX,INT_MAX);
+    int a=0;
+    int b=0;
+    for(int k=0;k<=mid-i;k++){
+        left_temp[k]=point[i+k];
+    }
+    for(int k=0;k<=j-mid-1;k++){
+        right_temp[k]=point[mid+1+k];
+    }
+    for(int k=i;k<=j;k++){
+        if(left_temp[a].second<right_temp[b].second){
+            point[k]=left_temp[a];
+            a++;
+        }else{
+            point[k]=right_temp[b];
+            b++;
+        }
+    }
+    double sigma=min(left,right);
+    vector<pair<int,int>> select;
+    for(int k=i;k<=j;k++){
+        if(point[k].first>=mid_x-sigma && point[k].first<=mid_x+sigma){
+            select.push_back(point[k]);
+        }
+    }
+    double cross=INT_MAX;
+    for(int k=0;k<select.size();k++){
+        for(int t=1;t<=5 &&k + t < select.size();t++){
+            long long d1=select[k].first-select[k+t].first;
+            long long d2=select[k].second-select[k+t].second;
+            double dist=sqrt(d1*d1+d2*d2);
+            if(dist<cross){
+                cross=dist;
+            }
+        }
+    }
+    return min(cross,sigma);
+}
+```
