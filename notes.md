@@ -101,7 +101,7 @@ void MergeSort(vector<int>& arr,int p,int r){
     Merge(arr,p,q,r);
 }
 ```
-![](MergeSort.png)
+![](imagesrc/MergeSort.png)
 **Time Complexity: $\Theta(nlogn)$**
 
 ## HeapSort
@@ -168,8 +168,8 @@ void QuickSort(vector<int>& arr,int p,int r){
 }
 ```
 **Time Complexity: $\Omega(nlogn),O(n^2)，Average: \Theta(nlogn)$**
-![](QuickSort1.png)
-![](QuickSort2.png)
+![](imagesrc/QuickSort1.png)
+![](imagesrc/QuickSort2.png)
 
 ### Randomised QuickSort
 There might be some extremely unbalanced conditions, causing the time degenerate to $n^2$. We can randomly select the pivot, which is called Randomised QuickSort to avoid the worst case, making the time average time complexity still be $\Theta(nlogn)$, and no one can find the worst case.
@@ -441,7 +441,7 @@ back();  //return the reference at the rear
 empty();  //bool
 size();  
 ```
-![](Queue.png)
+![](imagesrc/Queue.png)
 
 ## Priotity_Queue
 **feature**: a max-heap, pup will always take out the greatest element in $O(logn)$
@@ -1829,3 +1829,170 @@ double find(vector<pair<int,int>>& point,int i,int j){
     return min(cross,sigma);
 }
 ```
+
+## Fast Fourier Transform (FFT)
+**usage**: convert polynomial from coefficient form to point-value form, which can speed up counting A(x)*B(x) 
+```cpp
+# include<bits/stdc++.h>
+using namespace std;
+const double PI = std::acos(-1.0);
+struct Complex{
+    double real;
+    double vir;
+    Complex(double real = 0, double vir = 0) {
+        this->real = real;
+        this->vir = vir;
+    }
+    Complex operator+(const Complex& other) const {
+        return {real + other.real, vir + other.vir};
+    }
+    Complex operator-(const Complex& other) const {
+        return {real - other.real, vir - other.vir};
+    }
+    Complex operator*(const Complex& other) const {
+        return {real * other.real-vir*other.vir, vir * other.real+real * other.vir};
+    }
+    Complex operator/(int n) const {
+        return {real/n, vir/n};
+    }
+};
+
+void FFT(vector<Complex>& A,const vector<int>& rev,int L,bool idft=false){
+    for(int i=0;i<L;i++){
+        if(i<rev[i]){
+            swap(A[i],A[rev[i]]);
+        }
+    }
+    for(int i=2;i<=L;i<<=1){ //每组长度
+        Complex wn;
+        if(!idft){
+            wn=Complex(cos(2 * PI / i), sin(2 * PI / i));
+        }else{
+            wn=Complex(cos(2 * PI / i), -sin(2 * PI / i));        
+        }
+        for(int j=0;j<L;j+=i){ //遍历各组
+            Complex w(1,0);
+            for(int k=0;k<i/2;k++){ //处理组内
+                Complex t1=A[j+k];
+                Complex t2=w*A[j+k+i/2];
+                A[j+k]=t1+t2;
+                A[j+k+i/2]=t1-t2;
+                w=w*wn;
+            }
+        }
+    }
+    if(idft){
+        for(int i=0;i<L;i++){
+            A[i]=A[i]/L;
+        }
+    }
+}
+
+int main(){
+    int n;
+    int m;
+    cin>>n>>m;
+    int L = 1;  //FFT数组长度
+    int bit = 0;  //数组长度的二进制位数
+    while (L <= n + m) {
+        L <<= 1;
+        bit++;
+    }
+    vector<Complex> A(L); 
+    vector<Complex> B(L);
+    for(int i=0;i<n+1;i++){
+        int x;
+        cin>>x;
+        A[i]=Complex(x);
+    }
+    for(int i=0;i<m+1;i++){
+        int x;
+        cin>>x;
+        B[i]=Complex(x);
+    }
+    vector<int> rev(L);
+    rev[0]=0;
+    for(int i=1;i<L;i++){
+        rev[i]=rev[i>>1]>>1 | ((i&1)<<(bit-1));
+    }
+    FFT(A,rev,L);
+    FFT(B,rev,L);
+    vector<Complex> C(L);
+    for(int i=0;i<L;i++){
+        C[i]=A[i]*B[i];
+    }
+    FFT(C,rev,L,true);
+    for(int i=0;i<m+n+1;i++){
+        cout<<(int)(C[i].real+0.5)<<" ";
+    }
+    cout<<endl;
+}
+```
+
+# Dynamic Programming
+
+**idea: find a state transform fucntion (Bellman Equation), which can split the problem into smaller relative problem**
+
+## 0-1 Knapsack
+![](imagesrc/knapsacksq.png)
+### naive solution
+this is not good since the space complexity is $O(MN)$
+```cpp
+int Knapsack(const vector<int>& weight,const vector<int> value,int M,int N){
+    //M:背包容量  N：物品个数
+    vector<vector<int>> dp(N+1,vector<int>(M+1,0)); //dp[i][j]：用1~i号物品在不超过j容量的情况下能选出的最大总价值
+    for(int i=1;i<=N;i++){
+        for(int j=0;j<=M;j++){
+            if(weight[i]>j){
+                dp[i][j]=dp[i-1][j];
+            }else{
+                dp[i][j]=max(dp[i-1][j],value[i]+dp[i-1][j-weight[i]]);
+            }
+        }
+    }
+    return dp[N][M];
+}
+```
+
+### Optimization
+notice that the OPT(i,?) is only associated with OPT(i-1,?), this means we don't need to record all i state, but only two i is ok
+space complexity is $O(2*M)$
+```cpp
+int Knapsack(const vector<int>& weight,const vector<int> value,int M,int N){
+    //M:背包容量  N：物品个数
+    vector<vector<int>> dp(2,vector<int>(M+1,0)); //dp[i][j]：用1~i号物品在不超过j容量的情况下能选出的最大总价值
+    for(int i=1;i<=N;i++){
+        for(int j=0;j<=M;j++){
+            dp[0][j]=dp[1][j];
+            dp[1][j]=0;
+        }
+        for(int j=0;j<=M;j++){
+            if(weight[i]>j){
+                dp[1][j]=dp[0][j];
+            }else{
+                dp[1][j]=max(dp[0][j],value[i]+dp[0][j-weight[i]]);
+            }
+        }
+    }
+    return dp[1][M];
+}
+```
+
+Even better, it can be solved by using 1-D rolling array to solve the problem by iterating from the end to the head.
+space complexity is strictly $O(M)$
+```cpp
+int Knapsack(const vector<int>& weight,const vector<int> value,int M,int N){
+    //M:背包容量  N：物品个数
+    vector<int> dp(M+1,0); //dp[i]：总重量不超过i能获得的最大总价值
+    for(int i=1;i<=N;i++){  //外层是物品编号（i只与i-1有关）
+        for(int j=M;j>=1;j--){  //内层是重量限制
+            if(weight[i]<=j){
+                dp[j]=max(dp[j],dp[j-weight[i]]+value[i]);
+            }
+        }
+    }
+    return dp[M];
+}
+```
+1. 需要倒序遍历物品编号：否则后面的会多加了前面的，因为前面的已经被更新了。dp[j-weight[i]]所致
+2. 外层遍历物品编号，内层遍历容量限制：否则同一个容量会被多个编号更新而污染
