@@ -1996,3 +1996,4 @@ int Knapsack(const vector<int>& weight,const vector<int> value,int M,int N){
 ```
 1. 需要倒序遍历物品编号：否则后面的会多加了前面的，因为前面的已经被更新了。dp[j-weight[i]]所致
 2. 外层遍历物品编号，内层遍历容量限制：否则同一个容量会被多个编号更新而污染
+
