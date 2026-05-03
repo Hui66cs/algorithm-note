@@ -1,47 +1,50 @@
 # include <bits/stdc++.h>
 using namespace std;
+int Knapsack(const vector<int>& weight,const vector<int>& value,int M,int N){
+    //M:背包容量  N：物品个数
+    vector<vector<int>> dp(2,vector<int>(M+1,0)); //dp[i][j]：用1~i号物品在不超过j容量的情况下能选出的最大总价值
+    for(int i=1;i<=N;i++){
+        for(int j=1;j<=M;j++){
+            dp[0][j]=dp[1][j];
+            dp[1][j]=0;
+        }
+        for(int j=0;j<=M;j++){
+            if(weight[i]>j){
+                dp[1][j]=dp[0][j];
+            }else{
+                dp[1][j]=max(dp[0][j],value[i]+dp[0][j-weight[i]]);
+            }
+        }
+    }
+    return dp[1][M];
+}
 int main(){
-    int n,m,k;
-    cin>>n>>m>>k;
-    vector<vector<vector<vector<int>>>> dp(2,vector<vector<vector<int>>>(m + 1,vector<vector<int>>(201,vector<int>(201, 0))));
-    dp[1][0][100][100]=1;
-    for(int i=0;i<=n;i++){
-        for(int j=0;j<=m;j++){
-            for(int h=0;h<=200;h++){
-                for(int a=0;a<=200;a++){
-                    dp[0][j][h][a]=dp[1][j][h][a];
-                    dp[1][j][h][a]=0;
-                }
+    int N,C; 
+    cin>>N>>C;
+    vector<int> weight(N+1);
+    vector<int> value(N+1);
+    vector<int> q(N+1);
+    for(int i=1;i<=N;i++){
+        cin>>weight[i]>>value[i]>>q[i];
+    }
+    int newN=N;
+    for(int i=1;i<=N;i++){
+        if(q[i]>1){
+            int j=2;
+            q[i]--;
+            for(;j<=q[i];j<<=1){
+                weight.push_back(j*weight[i]);
+                value.push_back(j*value[i]);
+                newN++;
+                q[i]-=j;
             }
-        }
-        for(int j=0;j<=m;j++){
-            int cursum=i-j;
-            if(cursum>=-k && cursum<=k){
-                for(int mx=-100;mx<=100;mx++){
-                    for(int mn=-100;mn<=100;mn++){
-                        if(i<n){  //加男生
-                            int nxt = cursum + 1;
-                            if(nxt-mn<=k){
-                                dp[1][j][max(nxt+100,mx+100)][mn+100]=(dp[1][j][max(nxt+100,mx+100)][mn+100]+dp[0][j][mx+100][mn+100])%12345678;
-                            }
-                        }
-                        if(j<m){  //加女生
-                            int nxt = cursum - 1;
-                            if(mx-nxt>k){
-                                continue;
-                            }
-                            dp[0][j+1][mx+100][min(mn+100,nxt+100)]=(dp[0][j+1][mx+100][min(mn+100,nxt+100)]+dp[0][j][mx+100][mn+100])%12345678;
-                        }
-                    }
-                }
+            if(q[i]>0){
+                weight.push_back(q[i]*weight[i]);
+                value.push_back(q[i]*value[i]);
+                newN++;
             }
         }
     }
-    int ans=0;
-    for(int i=0;i<=200;i++){
-        for(int j=0;j<=200;j++){
-            ans=(ans+dp[0][m][i][j])%12345678;
-        }
-    }
-    cout<<ans<<endl;
+    N=newN;
+    cout<<Knapsack(weight,value,C,N)<<endl;
 }
