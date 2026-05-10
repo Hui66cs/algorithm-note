@@ -1197,7 +1197,7 @@ void DFS(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int
 bool No_circuit(const vector<vector<int>>& adj,vector<int>& d,vector<int>& f,vector<int>& parent,int& time,int u,int p){ 
     d[u]=++time;
     for(int v:adj[u]){
-        if(d[v]!=-1&&f[v]==-1&&v!=p){ //
+        if(d[v]!=-1&&f[v]==-1&&v!=p){ //若是哟想吐则不要v!=p
             return false;
         }
         else if(d[v]==-1){
@@ -1352,6 +1352,7 @@ void find_SCCs(const vector<vector<int>>& adj,vector<vector<int>>& scc){
 ==use solve Single-source shortest paths problem(SSSP) for weighted graph -- find the shortest paths from a source vertex to all other vertices.==
 - for Single-destination shortest paths problem, we can reverse the graph then use Dijkstra
 - for single-source to single-destination's shortest path, using A* Search will be much better(but it need heuristic information). Double side BFS(need hash table to record the middle result) and IDA* are also acceptable
+However, it can only deal with the case for any u,v w(u,v)>=0. If there exist w(u,v)<0, go to Bellman Ford or SPFA
 
 **idea: every time choose the node u which has the shortest distance currently, and update all the unchosen adjacent node's distance as the min of (current distance, d[u]+w(u,v))**
 
@@ -1997,3 +1998,162 @@ int Knapsack(const vector<int>& weight,const vector<int> value,int M,int N){
 1. 需要倒序遍历物品编号：否则后面的会多加了前面的，因为前面的已经被更新了。dp[j-weight[i]]所致
 2. 外层遍历物品编号，内层遍历容量限制：否则同一个容量会被多个编号更新而污染
 
+## Grouped Knapsack / Tree Knapsack
+### background
+given that
+```text
+给若n个孩子分配 K 个名额。
+已知child i 分到 j 个名额的最小代价是 a[i][j]。
+求所有孩子总共恰好分到 K 个名额时的最小总代价。
+```
+this is to solve $$\min_{\sum j_i = K} \sum_i a[i][j_i]$$
+### solving idea
+this itertation is going through child i
+tmp[x]: an array record the using child 1 ~ (i-1) and assign totally x's minimum total cost
+new tmp[x]: during this iteration, using child 1 ~ i and assign totally x's minimum total cost
+```cpp
+vector<int> tmp(K+1,INF);
+tmp[0]=0;
+for(int i=1;i<=n;i++){ // i为孩子编号
+    vector<int> newtmp(K+1,INF);
+    for(int j=0;j<=K;j++){ // j为分配的总名额
+        for(int t=0;t<=j;t++){  //t为第i号孩子占的名额
+            newtmp[j]=min(newtmp[j],a[i][t]+tmp[j-t]);
+        }
+    }
+    tmp=move(newtmp);
+}
+```
+
+##  Shortest Path with Negative Edges / Negative Cycle Detection
+
+**find the shortest path with negative edges in O(mn)**
+
+### SPFA
+
+1. for single detination
+it need to reverse the edge first
+
+```cpp
+void SPFA(const vector<vector<pair<int,int>>>& adj,int t,int n){
+    // adj[u]存的是指向u的点v,和边(v,u)的权重
+    queue<int> q;
+    q.push(t);
+    vector<int> d(n+1,INT_MAX);
+    vector<bool> inq(n+1,false);
+    vector<int> cnt(n+1,0);
+    vector<int> successor(n+1,-1);
+    bool hasneg=false;
+    d[t]=0;
+    inq[t]=true;
+    while(!q.empty()){
+        int u=q.front();
+        q.pop();
+        inq[u]=false;
+        for(int i=0;i<adj[u].size();i++){
+            int v=adj[u][i].first;
+            int w=adj[u][i].second;
+            if(d[v]>d[u]+w){
+                d[v]=d[u]+w;
+                successor[v]=u;
+                if(!inq[v]){
+                    q.push(v);
+                    inq[v]=true;
+                }
+                cnt[v]++;
+                if(cnt[v]>=n){ //有负环。无最短路，会无限循环，强制跳出
+                    hasneg=true;
+                    break;
+                }
+            }
+        }
+        if(hasneg){
+            break;
+        }
+    }
+}
+```
+
+2. for single source
+
+```cpp
+void SPFA(const vector<vector<pair<int,int>>>& adj,int s,int n){
+    queue<int> q;
+    q.push(s);
+    vector<int> d(n+1,INT_MAX);
+    vector<bool> inq(n+1,false);
+    vector<int> cnt(n+1,0);
+    vector<int> parent(n+1,-1);
+    bool hasneg=false;
+    d[s]=0;
+    inq[s]=true;
+    while(!q.empty()){
+        int u=q.front();
+        q.pop();
+        inq[u]=false;
+        for(int i=0;i<adj[u].size();i++){
+            int v=adj[u][i].first;
+            int w=adj[u][i].second;
+            if(d[v]>d[u]+w){
+                d[v]=d[u]+w;
+                parent[v]=u;
+                if(!inq[v]){
+                    q.push(v);
+                    inq[v]=true;
+                }
+                cnt[v]++;
+                if(cnt[v]>=n){ //有负环。无最短路，会无限循环，强制跳出
+                    hasneg=true;
+                    break;
+                }
+            }
+        }
+        if(hasneg){
+            break;
+        }
+    }
+}
+```
+
+3. negative cycle detection
+- here we use stack to optimize instead of using queue, because stack is like DFS, which is more efficient to detect the whole cycle, achiving cnt>=n.
+- we first let all the point to in stack, this will slove the unconnected condition problem. When encouring negative edge or d[u] is already negative, it will update d[v]
+```cpp
+bool Neg_Detect(vector<vector<pair<int,int>>>& adj,int n){
+    stack<int> s;
+    for(int i=1;i<=n;i++){
+        s.push(i);
+    }
+    vector<int> d(n+1,0);
+    vector<bool> instack(n+1,true);
+    vector<int> cnt(n+1,0);
+    vector<int> parent(n+1,-1);
+    bool hasneg=false;
+    while(!s.empty()){
+        int u=s.top();
+        s.pop();
+        instack[u]=false;
+        for(int i=0;i<adj[u].size();i++){
+            int v=adj[u][i].first;
+            int w=adj[u][i].second;
+            if(d[v]>d[u]+w){
+                d[v]=d[u]+w;
+                parent[v]=u;
+                if(!instack[v]){
+                    s.push(v);
+                    instack[v]=true;
+                }
+                cnt[v]++;
+                if(cnt[v]>=n){ //有负环。无最短路，会无限循环，强制跳出
+                    hasneg=true;
+                    break;
+                }
+            }
+        }
+        if(hasneg){
+            return true;
+        }
+    }
+    return false;
+}
+```
