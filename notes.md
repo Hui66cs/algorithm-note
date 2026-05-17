@@ -2071,6 +2071,7 @@ void SPFA(const vector<vector<pair<int,int>>>& adj,int t,int n){
             break;
         }
     }
+    while
 }
 ```
 
@@ -2157,3 +2158,248 @@ bool Neg_Detect(vector<vector<pair<int,int>>>& adj,int n){
     return false;
 }
 ```
+
+# Maximum Flow Problem
+## Edmonds-Karp Algorithm
+**idea**: using a residual network to implement a regretable greedy algorithm. 
+```cpp
+long long maxflow(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int m,int s,int t){
+    int n=adj.size()-1;
+    long long flow=0;
+    bool hasroute=true;
+    while(hasroute){
+        hasroute=false;
+        vector<int> preV(n+1,-1);
+        vector<int> preE(n+1,-1);
+        queue<int> q;
+        q.push(s);
+        preV[s]=s;
+        while(!q.empty()){
+            int u=q.front();
+            q.pop();
+            for(int i=0;i<adj[u].size();i++){
+                int v=edges[adj[u][i]].first;
+                long long w=edges[adj[u][i]].second;
+                if(preV[v]==-1 && w>0){
+                    preV[v]=u;
+                    preE[v]=adj[u][i]; //边序号
+                    if(v==t){
+                        hasroute=true;
+                        break;
+                    }
+                    q.push(v);
+                }
+            }
+            if (hasroute) break;
+        }
+        if(!hasroute){
+            return flow;
+        }
+        long long bottleneck=LLONG_MAX;
+        int temp=t;
+        while(temp!=s){
+            long long w=edges[preE[temp]].second;
+            if(w<bottleneck){
+                bottleneck=w;
+            }
+            temp=preV[temp];
+        }
+        flow+=bottleneck;
+        temp=t;
+        while(temp!=s){
+            if(preE[temp]<m){
+                edges[preE[temp]].second-=bottleneck;
+                edges[preE[temp]+m].second+=bottleneck;
+            }else{
+                edges[preE[temp]].second-=bottleneck;
+                edges[preE[temp]-m].second+=bottleneck;
+            }
+            temp=preV[temp];
+        }
+    }
+    return flow;
+}
+```
+
+## Dinitz Algorithm
+**idea**
+```pseudocode
+Dinitz(G,s,t){
+    flow=0;
+    while (BFS 在残量图中能到达 t) {
+        根据 BFS 结果得到层次图，即每个点的level[x]
+        初始化cur[x]，表示每个点当前扫描到哪条边，后面不用再遍历走过的边了
+        while(true){
+            pushed = DFS(s, INF) //推流，更新残量图
+            if pushed == 0:
+                break   // 当前层次图已经被阻塞，blocking flow求完
+            flow += pushed
+        }
+    }
+    return flow;
+}
+```
+```cpp
+long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int m,long long pushes,int u,int t,const vector<int>& level,vector<int>& cur){
+    if(u==t){
+        return pushes;
+    }
+    for(int &i=cur[u];i<adj[u].size();i++){
+        int v=edges[adj[u][i]].first;
+        long long w=edges[adj[u][i]].second;
+        if(level[u]!=level[v]-1 || w<=0){
+            continue;
+        }
+        long long temp_pushes=min(pushes,w);
+        long long bottleneck=DFS(adj,edges,m,temp_pushes,v,t,level,cur);
+        if(adj[u][i]>=m){
+            edges[adj[u][i]].second-=bottleneck;
+            edges[adj[u][i]-m].second+=bottleneck;
+        }else{
+            edges[adj[u][i]].second-=bottleneck;
+            edges[adj[u][i]+m].second+=bottleneck;
+        }
+        if(bottleneck>0){
+            return bottleneck;
+        }
+    }
+    return 0;
+}
+long long dinitz(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int m,int s,int t){
+    int n=adj.size()-1;
+    long long flow=0;
+    bool hasroute=true;
+    while(hasroute){
+        hasroute=false;
+        vector<int> level(n+1,-1); 
+        queue<int> q;
+        q.push(s);
+        level[s]=0;
+        //BFS构建层次图
+        while(!q.empty()){
+            int u=q.front();
+            q.pop();
+            for(int i=0;i<adj[u].size();i++){
+                int v=edges[adj[u][i]].first;
+                long long w=edges[adj[u][i]].second;
+                if(level[v]==-1 && w>0){
+                    level[v]=level[u]+1;
+                    if(v==t){
+                        hasroute=true;
+                    }
+                    q.push(v);
+                }
+            }
+        }
+        if(!hasroute){
+            return flow;
+        }
+        vector<int> cur(n+1,0);
+        while(true){
+            long long pushed = DFS(adj, edges, m, LLONG_MAX, s, t, level, cur);
+            if (pushed == 0) break;
+            flow += pushed;
+        }
+    }
+    return flow;
+}
+```
+
+## Min Cost Max Flow
+**idea**:
+1. for every true edges, build a corresponding back edges. Initialize: cost[back_edge]=-cost[true_edge], capacity[back_edge]=0
+2. every time use SPFA to find the minimum cost route that s can reach t. 
+    - If no route, the algorithm terminate. 
+    - If has route, find the bottleneck capacity of the route, then update the capacity of the edges in this route. (also need to update the back edges. But no need to update any edge cost)
+```cpp
+#include <bits/stdc++.h>
+using namespace std;
+void MinCost_MaxFlow(const vector<vector<int>>& adj,vector<tuple<int,long long,long long>>& edges,long long& cost,int& flow,int s,int t){
+    int n=adj.size()-1;
+    bool hasroute=true;
+    while(hasroute){
+        hasroute=false;
+        queue<int> q;
+        q.push(s);
+        vector<long long> d(n+1,LLONG_MAX/2);
+        vector<bool> inq(n+1,false);
+        vector<int> parent(n+1,-1);
+        vector<int> parent_edge(n+1,-1);
+        bool hasneg=false;
+        d[s]=0;
+        inq[s]=true;
+        while(!q.empty()){
+            int u=q.front();
+            q.pop();
+            inq[u]=false;
+            for(int i=0;i<adj[u].size();i++){
+                int v=get<0>(edges[adj[u][i]]);
+                long long capacity=get<1>(edges[adj[u][i]]);
+                long long cost=get<2>(edges[adj[u][i]]);
+                if(capacity>0 && d[v]>d[u]+cost){
+                    d[v]=d[u]+cost;
+                    parent[v]=u;
+                    parent_edge[v]=adj[u][i];
+                    if(!inq[v]){
+                        q.push(v);
+                        inq[v]=true;
+                    }
+                    if(v==t){
+                        hasroute=true;
+                    }
+                }
+            }
+        }
+        if(parent[t]==-1){
+            break;
+        }
+        int temp=t;
+        long long bottleneck=LLONG_MAX;
+        while(temp!=s){
+            bottleneck=min(bottleneck,get<1>(edges[parent_edge[temp]]));
+            temp=parent[temp];
+        }
+        temp=t;
+        while(temp!=s){
+            get<1>(edges[parent_edge[temp]])-=bottleneck;
+            cost+=bottleneck*get<2>(edges[parent_edge[temp]]);
+            if((parent_edge[temp] & 1) ==0){
+                get<1>(edges[parent_edge[temp]+1])+=bottleneck;
+            }else{
+                get<1>(edges[parent_edge[temp]-1])+=bottleneck;
+            }
+            temp=parent[temp];
+        }
+        flow+=bottleneck;
+    }
+}
+int main(){
+    int n,m,s,t;
+    cin>>n>>m>>s>>t;
+    vector<vector<int>> adj(n+1); 
+    vector<tuple<int,long long,long long>> edges; 
+    int edgecnt=0;
+    for(int i=0;i<m;i++){
+        int u,v;
+        long long cap,cost;
+        cin>>u>>v>>cap>>cost;
+        edges.push_back(make_tuple(v,cap,cost));
+        adj[u].push_back(edgecnt);
+        edgecnt++;
+        edges.push_back(make_tuple(u,0,-cost)); //反向边
+        adj[v].push_back(edgecnt);
+        edgecnt++;
+    }
+    long long cost=0;
+    int flow=0;
+    MinCost_MaxFlow(adj,edges,cost,flow,s,t);
+    cout<<flow<<" "<<cost<<endl;
+}
+```
+
+## some other type of max flow problems
+### node capacity contraint
+In the previous algorithms, they can only deal with the capacity constraint on edges. So we need to convert the capacity on node to edges.
+The idea is easy. Break each node(except for the source and the destination) into two node. the capacity constraint on the edge between these two nodes is the consraint on the node. And the capacity between other nodes to these subnodes are INF(this means no constraint).
+![](./imagesrc/edge_cap_constraint.jpg)
+If there is also a cost constraint, the constraint between two subnodes should be 0.
