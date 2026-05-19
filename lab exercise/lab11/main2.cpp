@@ -12,11 +12,10 @@ long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,
         }
         long long temp_pushes=min(pushes,w);
         long long bottleneck=DFS(adj,edges,temp_pushes,v,t,level,cur);
-        if((adj[u][i] & 1)==0){
-            edges[adj[u][i]].second-=bottleneck;
+		edges[adj[u][i]].second-=bottleneck;
+        if((adj[u][i] & 1)==0){ //偶数边为原边，奇数边为后添加的反向边
             edges[adj[u][i]+1].second+=bottleneck;
         }else{
-            edges[adj[u][i]].second-=bottleneck;
             edges[adj[u][i]-1].second+=bottleneck;
         }
         if(bottleneck>0){

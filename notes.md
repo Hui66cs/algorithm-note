@@ -2160,10 +2160,13 @@ bool Neg_Detect(vector<vector<pair<int,int>>>& adj,int n){
 ```
 
 # Maximum Flow Problem
+
+In the following implementations, we assume the reverse edges have been added to graph before calling the algorithms. The adding method is first add a real edge, then add the corresponding reverse edge immediately follow it. This will lead to the even edges are real edges, and the odd edges are the reverse edges.
+
 ## Edmonds-Karp Algorithm
 **idea**: using a residual network to implement a regretable greedy algorithm. 
 ```cpp
-long long maxflow(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int m,int s,int t){
+long long maxflow(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int s,int t){
     int n=adj.size()-1;
     long long flow=0;
     bool hasroute=true;
@@ -2207,12 +2210,11 @@ long long maxflow(const vector<vector<int>>& adj,vector<pair<int,long long>>& ed
         flow+=bottleneck;
         temp=t;
         while(temp!=s){
-            if(preE[temp]<m){
-                edges[preE[temp]].second-=bottleneck;
-                edges[preE[temp]+m].second+=bottleneck;
+            edges[preE[temp]].second-=bottleneck;
+            if((preE[temp] & 1) == 0){
+                edges[preE[temp]+1].second+=bottleneck;
             }else{
-                edges[preE[temp]].second-=bottleneck;
-                edges[preE[temp]-m].second+=bottleneck;
+                edges[preE[temp]-1].second+=bottleneck;
             }
             temp=preV[temp];
         }
@@ -2228,7 +2230,7 @@ Dinitz(G,s,t){
     flow=0;
     while (BFS 在残量图中能到达 t) {
         根据 BFS 结果得到层次图，即每个点的level[x]
-        初始化cur[x]，表示每个点当前扫描到哪条边，后面不用再遍历走过的边了
+        初始化cur[x]，表示每个点当前扫描到哪条边，后面不用再遍历走过的边了（弧优化）
         while(true){
             pushed = DFS(s, INF) //推流，更新残量图
             if pushed == 0:
@@ -2240,7 +2242,7 @@ Dinitz(G,s,t){
 }
 ```
 ```cpp
-long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int m,long long pushes,int u,int t,const vector<int>& level,vector<int>& cur){
+long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,long long pushes,int u,int t,const vector<int>& level,vector<int>& cur){
     if(u==t){
         return pushes;
     }
@@ -2251,13 +2253,12 @@ long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,
             continue;
         }
         long long temp_pushes=min(pushes,w);
-        long long bottleneck=DFS(adj,edges,m,temp_pushes,v,t,level,cur);
-        if(adj[u][i]>=m){
-            edges[adj[u][i]].second-=bottleneck;
-            edges[adj[u][i]-m].second+=bottleneck;
+        long long bottleneck=DFS(adj,edges,temp_pushes,v,t,level,cur);
+        edges[adj[u][i]].second-=bottleneck;
+        if((adj[u][i] & 1)==0){ //偶数边为原边，奇数边为后添加的反向边
+            edges[adj[u][i]+1].second+=bottleneck;
         }else{
-            edges[adj[u][i]].second-=bottleneck;
-            edges[adj[u][i]+m].second+=bottleneck;
+            edges[adj[u][i]-1].second+=bottleneck;
         }
         if(bottleneck>0){
             return bottleneck;
@@ -2265,7 +2266,7 @@ long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,
     }
     return 0;
 }
-long long dinitz(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int m,int s,int t){
+long long dinitz(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int s,int t){
     int n=adj.size()-1;
     long long flow=0;
     bool hasroute=true;
@@ -2296,7 +2297,7 @@ long long dinitz(const vector<vector<int>>& adj,vector<pair<int,long long>>& edg
         }
         vector<int> cur(n+1,0);
         while(true){
-            long long pushed = DFS(adj, edges, m, LLONG_MAX, s, t, level, cur);
+            long long pushed = DFS(adj, edges, LLONG_MAX, s, t, level, cur);
             if (pushed == 0) break;
             flow += pushed;
         }
