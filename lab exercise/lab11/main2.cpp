@@ -1,83 +1,203 @@
 #include <bits/stdc++.h>
 using namespace std;
-void MinCost_MaxFlow(const vector<vector<int>>& adj,vector<tuple<int,long long,long long>>& edges,long long& cost,int& flow,int s,int t){
+long long DFS(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,long long pushes,int u,int t,const vector<int>& level,vector<int>& cur){
+    if(u==t){
+        return pushes;
+    }
+    for(int &i=cur[u];i<adj[u].size();i++){
+        int v=edges[adj[u][i]].first;
+        long long w=edges[adj[u][i]].second;
+        if(level[u]!=level[v]-1 || w<=0){
+            continue;
+        }
+        long long temp_pushes=min(pushes,w);
+        long long bottleneck=DFS(adj,edges,temp_pushes,v,t,level,cur);
+        if((adj[u][i] & 1)==0){
+            edges[adj[u][i]].second-=bottleneck;
+            edges[adj[u][i]+1].second+=bottleneck;
+        }else{
+            edges[adj[u][i]].second-=bottleneck;
+            edges[adj[u][i]-1].second+=bottleneck;
+        }
+        if(bottleneck>0){
+            return bottleneck;
+        }
+    }
+    return 0;
+}
+long long dinitz(const vector<vector<int>>& adj,vector<pair<int,long long>>& edges,int s,int t){
     int n=adj.size()-1;
+    long long flow=0;
     bool hasroute=true;
     while(hasroute){
         hasroute=false;
+        vector<int> level(n+1,-1); 
         queue<int> q;
         q.push(s);
-        vector<long long> d(n+1,LLONG_MAX/2);
-        vector<bool> inq(n+1,false);
-        vector<int> parent(n+1,-1);
-        vector<int> parent_edge(n+1,-1);
-        bool hasneg=false;
-        d[s]=0;
-        inq[s]=true;
+        level[s]=0;
+        //BFS构建层次图
         while(!q.empty()){
             int u=q.front();
             q.pop();
-            inq[u]=false;
             for(int i=0;i<adj[u].size();i++){
-                int v=get<0>(edges[adj[u][i]]);
-                long long capacity=get<1>(edges[adj[u][i]]);
-                long long cost=get<2>(edges[adj[u][i]]);
-                if(capacity>0 && d[v]>d[u]+cost){
-                    d[v]=d[u]+cost;
-                    parent[v]=u;
-                    parent_edge[v]=adj[u][i];
-                    if(!inq[v]){
-                        q.push(v);
-                        inq[v]=true;
-                    }
+                int v=edges[adj[u][i]].first;
+                long long w=edges[adj[u][i]].second;
+                if(level[v]==-1 && w>0){
+                    level[v]=level[u]+1;
                     if(v==t){
                         hasroute=true;
                     }
+                    q.push(v);
                 }
             }
         }
-        if(parent[t]==-1){
-            break;
+        if(!hasroute){
+            return flow;
         }
-        int temp=t;
-        long long bottleneck=LLONG_MAX;
-        while(temp!=s){
-            bottleneck=min(bottleneck,get<1>(edges[parent_edge[temp]]));
-            temp=parent[temp];
+        vector<int> cur(n+1,0);
+        while(true){
+            long long pushed = DFS(adj, edges, LLONG_MAX, s, t, level, cur);
+            if (pushed == 0) break;
+            flow += pushed;
         }
-        temp=t;
-        while(temp!=s){
-            get<1>(edges[parent_edge[temp]])-=bottleneck;
-            cost+=bottleneck*get<2>(edges[parent_edge[temp]]);
-            if((parent_edge[temp] & 1) ==0){
-                get<1>(edges[parent_edge[temp]+1])+=bottleneck;
-            }else{
-                get<1>(edges[parent_edge[temp]-1])+=bottleneck;
-            }
-            temp=parent[temp];
-        }
-        flow+=bottleneck;
     }
+    return flow;
 }
 int main(){
-    int n,m,s,t;
-    cin>>n>>m>>s>>t;
-    vector<vector<int>> adj(n+1); 
-    vector<tuple<int,long long,long long>> edges; 
-    int edgecnt=0;
-    for(int i=0;i<m;i++){
-        int u,v;
-        long long cap,cost;
-        cin>>u>>v>>cap>>cost;
-        edges.push_back(make_tuple(v,cap,cost));
-        adj[u].push_back(edgecnt);
-        edgecnt++;
-        edges.push_back(make_tuple(u,0,-cost)); //反向边
-        adj[v].push_back(edgecnt);
-        edgecnt++;
-    }
-    long long cost=0;
-    int flow=0;
-    MinCost_MaxFlow(adj,edges,cost,flow,s,t);
-    cout<<flow<<" "<<cost<<endl;
+    int n,m;
+    cin>>n>>m;
+    long long sum=0;
+	vector<vector<int>> adj(m*n+2); //0为s，mn+1为t
+	vector<pair<int,long long>> edges;
+	int edgecnt=0;
+	int nodecnt=m*n+2;
+	// 单选文的快乐
+	for(int i=1;i<=n;i++){
+		for(int j=1;j<=m;j++){
+			//第i行第j列同学，即a[i][j],编号为(i-1)*m+j
+			long long h;
+			cin>>h;
+			sum+=h; 
+			edges.push_back(make_pair((i-1)*m+j,h));
+			adj[0].push_back(edgecnt++);
+
+			edges.push_back(make_pair(0,0));
+			adj[(i-1)*m+j].push_back(edgecnt++);
+		}
+	}
+	//单选理的快乐
+	for(int i=1;i<=n;i++){
+		for(int j=1;j<=m;j++){
+			long long h;
+			cin>>h;
+			sum+=h; 
+			edges.push_back(make_pair(m*n+1,h));
+			adj[(i-1)*m+j].push_back(edgecnt++);
+
+			edges.push_back(make_pair((i-1)*m+j,0));
+			adj[m*n+1].push_back(edgecnt++);
+		}
+	}
+	//与i+1行对应同学同选文的额外快乐
+	for(int i=1;i<=n-1;i++){
+		for(int j=1;j<=m;j++){
+			long long h;
+			cin>>h;
+			sum+=h; 
+			vector<int> arr;
+			adj.push_back(arr);
+			edges.push_back(make_pair(nodecnt,h));
+			adj[0].push_back(edgecnt++);
+			edges.push_back(make_pair(0,0));
+			adj[nodecnt].push_back(edgecnt++);
+
+			edges.push_back(make_pair((i-1)*m+j,1e18));
+			adj[nodecnt].push_back(edgecnt++);
+			edges.push_back(make_pair(nodecnt,0));
+			adj[(i-1)*m+j].push_back(edgecnt++);
+
+			edges.push_back(make_pair(i*m+j,1e18));
+			adj[nodecnt].push_back(edgecnt++);
+			edges.push_back(make_pair(nodecnt,0));
+			adj[i*m+j].push_back(edgecnt++);
+			nodecnt++;
+		}
+	}
+	//与i+1行对应同学同选理的额外快乐
+	for(int i=1;i<=n-1;i++){
+		for(int j=1;j<=m;j++){
+			long long h;
+			cin>>h;
+			sum+=h; 
+			vector<int> arr;
+			adj.push_back(arr);
+			edges.push_back(make_pair(m*n+1,h));
+			adj[nodecnt].push_back(edgecnt++);
+			edges.push_back(make_pair(nodecnt,0));
+			adj[m*n+1].push_back(edgecnt++);
+
+			edges.push_back(make_pair(nodecnt,1e18));
+			adj[(i-1)*m+j].push_back(edgecnt++);
+			edges.push_back(make_pair((i-1)*m+j,0));
+			adj[nodecnt].push_back(edgecnt++);
+
+			edges.push_back(make_pair(nodecnt,1e18));
+			adj[i*m+j].push_back(edgecnt++);
+			edges.push_back(make_pair(i*m+j,0));
+			adj[nodecnt].push_back(edgecnt++);
+			nodecnt++;
+		}
+	}
+	//与j+1列对应同学同选文的额外快乐
+	for(int i=1;i<=n;i++){
+		for(int j=1;j<=m-1;j++){
+			long long h;
+			cin>>h;
+			sum+=h; 
+			vector<int> arr;
+			adj.push_back(arr);
+			edges.push_back(make_pair(nodecnt,h));
+			adj[0].push_back(edgecnt++);
+			edges.push_back(make_pair(0,0));
+			adj[nodecnt].push_back(edgecnt++);
+
+			edges.push_back(make_pair((i-1)*m+j,1e18));
+			adj[nodecnt].push_back(edgecnt++);
+			edges.push_back(make_pair(nodecnt,0));
+			adj[(i-1)*m+j].push_back(edgecnt++);
+
+			edges.push_back(make_pair((i-1)*m+j+1,1e18));
+			adj[nodecnt].push_back(edgecnt++);
+			edges.push_back(make_pair(nodecnt,0));
+			adj[(i-1)*m+j+1].push_back(edgecnt++);
+			nodecnt++;
+		}
+	}
+	//与j+1列对应同学同选理的额外快乐
+	for(int i=1;i<=n;i++){
+		for(int j=1;j<=m-1;j++){
+			long long h;
+			cin>>h;
+			sum+=h; 
+			vector<int> arr;
+			adj.push_back(arr);
+			edges.push_back(make_pair(m*n+1,h));
+			adj[nodecnt].push_back(edgecnt++);
+			edges.push_back(make_pair(nodecnt,0));
+			adj[m*n+1].push_back(edgecnt++);
+
+			edges.push_back(make_pair(nodecnt,1e18));
+			adj[(i-1)*m+j].push_back(edgecnt++);
+			edges.push_back(make_pair((i-1)*m+j,0));
+			adj[nodecnt].push_back(edgecnt++);
+
+			edges.push_back(make_pair(nodecnt,1e18));
+			adj[(i-1)*m+j+1].push_back(edgecnt++);
+			edges.push_back(make_pair((i-1)*m+j+1,0));
+			adj[nodecnt].push_back(edgecnt++);
+			nodecnt++;
+		}
+	}
+	long long mincut=dinitz(adj,edges,0,m*n+1);
+	cout<<sum-mincut<<endl;
 }
